@@ -26,7 +26,7 @@ Spec: "Development environment and private beta", "Build defaults", "Brand and d
 Spec: "Who has to provide what, and when", "How the safety features work"
 
 - [ ] Anyone can browse with no account.
-- [ ] Sign in with email link, Google or Apple (Supabase Auth); Turnstile on sign-up.
+- [ ] Sign in with email link or Google (Supabase Auth; no Apple in V1); Turnstile on sign-up.
 - [ ] Phone check through Twilio Verify, with VoIP numbers rejected; one account per phone number.
 - [ ] Phone check required at first bid or first listing, not at sign-up.
 - [ ] Dev-only fixed verification code that can't be enabled in production.
@@ -137,7 +137,7 @@ Spec: "Trust, safety and legal", "Build defaults" (also in V1)
 - [ ] Nightly database backup to R2 (until Supabase paid backups).
 - [ ] Sentry alerts on errors in closing jobs and webhooks.
 - [ ] Terms, privacy policy and banned-items pages.
-- [ ] Load test: a full Closing Night of 150 items with simulated bidders.
+- [ ] Load test: a full Closing Night (all 120 slots, plus an overflow night with more items than slots) with simulated bidders.
 - [ ] Fix everything the beta turned up.
 
 ## M11 — Public launch in Houston
@@ -147,6 +147,6 @@ Spec: "90-day launch plan", "Setup costs and budget", "Trust, safety and legal"
 - [ ] LLC, EIN, business bank account, lawyer review and CPA call done (owner tasks).
 - [ ] Stripe live mode; Vercel Pro; production keys only in Vercel.
 - [ ] DNS back to "DNS only"; beta lock removed.
-- [ ] 150+ live listings seeded for the first public Closing Night.
+- [ ] The owner's garage items listed for the first public Closing Night (no minimum count).
 - [ ] Favicon, LL monogram app icons, social share template, email header exported.
 - [ ] Launch-week metrics dashboard in PostHog: listings per Closing Night, sell-through, bidders per item, repeat sellers.

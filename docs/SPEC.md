@@ -36,6 +36,9 @@ These are settled. Change them only on purpose, and add a new row when you do.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| Nov 15, 2026 | Locally the app runs on port 3100 (`pnpm dev`, Auth redirects, Inngest, Stripe CLI, storage CORS) and Playwright serves its build on 3200 | Port 3000 is often taken by the owner's other projects; e2e on its own port means a running dev server never answers a test run |
+| Nov 15, 2026 | Launch doesn't wait for a listing count. The first Closing Nights run on the owner's own garage items, however many that is; the old "150+ live auctions" launch target is dropped. Closing Night stays Sunday 7–9 PM at one item a minute (120 slots). If a night ever has more listings than slots, the scheduler puts more than one item in a minute rather than running past 9 PM; a second Closing Night is the longer-term fix | The owner is seller number one and may not have 120 items at launch. Small nights are fine, because auto-widen and the countdown keep the wall from feeling empty. This also settles the 120-slot vs 150-listing conflict |
+| Nov 15, 2026 | No Apple sign-in in V1: email link and Google only | Apple sign-in requires the $99/year Apple Developer Program, and the project is on a strict budget. The email link works fine on iPhones. Supabase can add Apple later without schema changes |
 | Nov 15, 2026 | Buyer's premium rounds to the nearest cent (half up), minimum $1: a $14 win pays $1.40, not the mockup's whole-dollar $1. The bid sheet shows cents | Matches "10%" exactly and the integer-cents rule; whole-dollar rounding drifts from 10% on small sales |
 | Nov 15, 2026 | All data access is server-side through Drizzle. Supabase JS is used only for Auth sessions and Realtime Broadcast. Every table has RLS on with no anon/authenticated policies, and the `public` schema is not exposed through Supabase's REST API | Keeps the bid transaction, address privacy and contact blocking in one enforced place; nothing can be queried around them from the browser |
 | Nov 15, 2026 | Drizzle owns migrations for the `public` schema (`drizzle/`); Supabase CLI migrations are unused. Supabase's new publishable/secret API keys, not the legacy anon/service-role keys | One migration path in every environment; the legacy keys are being retired |
@@ -117,7 +120,7 @@ Landing page, top to bottom:
 **No-friction rules:**
 
 - Anyone can browse without an account.
-- An account is needed only to bid or sell, with Google, Apple or email on one screen.
+- An account is needed only to bid or sell, with Google or email on one screen (no Apple sign-in in V1; see the decisions log).
 - Phone check and card come at the first bid, not at sign-up.
 - Sellers can list before setting up payouts; payout setup happens after the first sale.
 
@@ -327,7 +330,7 @@ People want to join something already running. They should never have to build t
 
 ## Seeding inventory: more is better
 
-In the first months, the number of live auctions matters more than any theme. Accept almost anything legal, keep the quality bar at "clear photos and an honest description," and list items for early sellers yourself when that's what it takes. Target: 150 or more live auctions on the first public Closing Night.
+In the first months, the number of live auctions matters more than any theme. Accept almost anything legal, keep the quality bar at "clear photos and an honest description," and list items for early sellers yourself when that's what it takes. There's no minimum to launch: the first Closing Nights run on your own garage items, and the count grows from there (decisions log, Nov 15).
 
 | Source | What they bring | How to get it |
 | --- | --- | --- |
@@ -355,7 +358,7 @@ V1 is a mobile-friendly web app for one metro area, with local pickup only. Ever
 
 | Area | In V1 | Later |
 | --- | --- | --- |
-| Accounts | Email, Google or Apple sign-in; phone verification | Seller ID checks beyond Stripe's |
+| Accounts | Email or Google sign-in; phone verification | Seller ID checks beyond Stripe's |
 | Listing | Up to 8 photos, title, backstory, condition, category, pickup zip, lots | Bulk upload for cleanouts |
 | Listing help | AI suggests title, category and description from the photos | Price suggestions from past sales |
 | Auctions | Timed auctions, max-bid (proxy) bidding, 2-minute soft close, Closing Night | Buy-it-now (hidden reserve prices: never) |
@@ -517,7 +520,7 @@ Run Next.js directly on your machine and everything else in Docker, with each ou
 | Postgres + PostGIS (Neon or Supabase) | Docker: the `postgis/postgis` image | If you choose Supabase, its CLI (`supabase start`) runs Postgres, Realtime, Auth and Storage locally in one go |
 | Migrations | Drizzle or Prisma | The same migration files run in every environment; never edit the beta database by hand |
 | Cloudflare R2 | RustFS in Docker (MinIO-compatible; speaks the same S3 API) | Or a separate dev R2 bucket; image resizing can be skipped locally. MinIO no longer publishes images (Decisions log, Nov 15) |
-| Stripe | Stripe test mode plus the Stripe CLI | `stripe listen --forward-to localhost:3000/api/webhooks/stripe` sends payment events to your laptop; use Stripe's test card numbers |
+| Stripe | Stripe test mode plus the Stripe CLI | `stripe listen --forward-to localhost:3100/api/webhooks/stripe` sends payment events to your laptop; use Stripe's test card numbers |
 | Email (Resend) | Mailpit, bundled with the Supabase CLI | Catches every outgoing email (Supabase Auth and the app) in one local inbox at a web page |
 | Twilio Verify | Twilio test credentials, or a dev-only fixed code | The fixed code must be impossible to turn on in production |
 | Cloudflare Turnstile | Cloudflare's published test keys | One key always passes, one always fails |
@@ -536,7 +539,7 @@ Run Next.js directly on your machine and everything else in Docker, with each ou
 1. Install Node.js (current LTS), pnpm, Git and Docker Desktop. On Windows, run everything inside WSL2 (Linux on Windows) for far fewer problems.
 2. Install the Vercel CLI and Stripe CLI.
 3. Clone the repo, copy `.env.example` to `.env.local`, then run `pnpm db:start`, `pnpm db:migrate` and `pnpm dev` (full steps in README.md).
-4. Run the seed script and open localhost:3000.
+4. Run the seed script and open localhost:3100.
 
 Put these steps in the repo's README and CLAUDE.md so Claude Code can run and test the app the same way you do.
 
@@ -578,7 +581,7 @@ Stripe Connect is the standard tool for marketplaces that pay many small sellers
 | To do this | They need |
 | --- | --- |
 | Browse or watch auctions | Nothing |
-| Create an account | Email, Google or Apple, plus an invisible bot check |
+| Create an account | Email or Google, plus an invisible bot check |
 | List an item | Verified phone number |
 | Bid | Verified phone number and a card on file (not charged) |
 | Get paid | Stripe payout setup (bank and ID), after the first sale |
@@ -714,7 +717,7 @@ These come out of each sale and are covered by the buyer's premium (see Payments
 
 Growth comes from a full wall on day one, easy-to-share auction links, and a weekly Sunday ritual. Social media is a supporting tool, and one channel done simply is enough.
 
-**You are seller number one.** List 50–100 items from your own garage and house before the public launch so the first Closing Night looks busy.
+**You are seller number one.** List what you can from your own garage and house before the public launch. A small first Closing Night is fine; keep adding each week.
 
 **Where Houston's first users are:**
 
@@ -750,7 +753,7 @@ If you start now, the public launch lands on a January "New Year Purge," when pe
 | Weeks | Dates (approx.) | Focus | Done when |
 | --- | --- | --- | --- |
 | 1–4 | Nov 16 – Dec 13 | Build V1: listing, bidding, Closing Night job, Stripe payments, pickup chat | One full test auction runs end to end with real cards |
-| 5–6 | Dec 14 – Dec 27 | Private beta with 20–30 friends and neighbors; a "White Elephant Gift Drop" | 100 listings seeded, starting with your garage and the uniforms |
+| 5–6 | Dec 14 – Dec 27 | Private beta with 20–30 friends and neighbors; a "White Elephant Gift Drop" | Your garage items and the uniforms listed (no fixed count) |
 | 7–8 | Jan 4 – Jan 17 | Public launch in Houston: "New Year Purge" Closing Night | Posts in local Facebook groups, Nextdoor, school booster clubs, contractor groups |
 | 9–13 | Jan 18 – Feb 14 | Weekly Closing Nights; fix what hurts; one Valentine's-themed drop | Metrics below reviewed each week |
 
@@ -797,7 +800,7 @@ Set Nov 15, 2026 so implementation can start. Each is easy to change later; ever
 | --- | --- | --- |
 | Database host | Supabase: Postgres + PostGIS, Auth, Realtime | Its CLI runs the whole stack locally; images still go to Cloudflare R2 |
 | ORM and migrations | Drizzle | Typed SQL, plain migration files |
-| Sign-in | Supabase Auth: email link, Google, Apple; phone check through Twilio Verify | Phone check at first bid or listing, not at sign-up |
+| Sign-in | Supabase Auth: email link, Google; phone check through Twilio Verify | Phone check at first bid or listing, not at sign-up |
 | Scheduled jobs | Inngest | Closing jobs, payouts, reminders |
 | Fee model | 10% buyer's premium, minimum $1; free items $0; sellers pay nothing | Stored as config |
 | Payouts | Every two weeks, $15 minimum balance that rolls over | Stored as config |
@@ -828,5 +831,5 @@ These can wait, but each needs an answer before Claude Code builds the part it a
 - [ ] Sales tax treatment, including the buyer's premium (CPA call before public launch)
 - [ ] Lawyer review of terms and auctioneer licensing (before public launch)
 - [ ] Form the LLC (proposed: before the public launch)
-- [ ] When to add a second Closing Night (proposed: once a metro passes about 150 listings a week)
+- [ ] When to add a second Closing Night (proposed: once a metro regularly fills the 120 one-minute slots)
 - [ ] Recheck Biddie and Maxsold in a few months
