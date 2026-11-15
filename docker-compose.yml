@@ -49,7 +49,7 @@ services:
         # Listing photos are public once uploaded (they've had metadata stripped twice).
         $$S3 put-bucket-policy --bucket listings --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::listings/*"]}]}'
         # Browsers upload directly with presigned PUT URLs.
-        $$S3 put-bucket-cors --bucket listings --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:3000","http://127.0.0.1:3000"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}'
+        $$S3 put-bucket-cors --bucket listings --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:3100","http://127.0.0.1:3100"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}'
         echo "listings bucket ready"
     restart: "no"
 

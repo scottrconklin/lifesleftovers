@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3100",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3100",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
@@ -20,8 +20,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "tsx scripts/reset.ts",
-    "jobs:dev": "inngest-cli dev -u http://localhost:3000/api/inngest --no-discovery",
-    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
+    "jobs:dev": "inngest-cli dev -u http://localhost:3100/api/inngest --no-discovery",
+    "stripe:listen": "stripe listen --forward-to localhost:3100/api/webhooks/stripe"
   },
   "dependencies": {
     "@sentry/nextjs": "^11.12.0",

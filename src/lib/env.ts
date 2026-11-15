@@ -15,7 +15,7 @@ const bool = z
 
 const serverShape = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  APP_URL: z.url().default("http://localhost:3000"),
+  APP_URL: z.url().default("http://localhost:3100"),
 
   // Database (Supabase Postgres + PostGIS)
   DATABASE_URL: z.string().min(1).optional(),

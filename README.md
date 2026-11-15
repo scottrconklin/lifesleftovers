@@ -31,7 +31,7 @@ The Supabase CLI and Inngest CLI are dev dependencies, so there's nothing else t
 pnpm db:start      # Supabase (Postgres+PostGIS, Auth, Realtime, Mailpit) + RustFS (local R2)
 pnpm db:migrate    # apply migrations
 pnpm db:seed       # load local data (grows each milestone)
-pnpm dev           # http://localhost:3000
+pnpm dev           # http://localhost:3100
 pnpm jobs:dev      # in another terminal: Inngest dev server
 pnpm stripe:listen # in another terminal, when working on payments
 ```
@@ -42,7 +42,7 @@ pnpm stripe:listen # in another terminal, when working on payments
 
 | What                                                                                        | URL                                                       |
 | ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| App                                                                                         | http://localhost:3000                                     |
+| App                                                                                         | http://localhost:3100                                     |
 | Supabase Studio (database browser)                                                          | http://localhost:54323                                    |
 | Mailpit (every email the app or Auth sends)                                                 | http://localhost:54324                                    |
 | RustFS console (image storage; user `lifesleftovers`, password `lifesleftovers-dev-secret`) | http://localhost:9001                                     |
@@ -57,13 +57,13 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm test:db && pnpm test:e2e
 
 - `pnpm test`: unit tests (Vitest), no services needed.
 - `pnpm test:db`: database integration tests; needs `db:start` and `db:migrate`.
-- `pnpm test:e2e`: Playwright on mobile and desktop Chromium. It builds the app and serves it on port **3100**, so it won't collide with `pnpm dev`.
+- `pnpm test:e2e`: Playwright on mobile and desktop Chromium. It builds the app and serves it on port **3200**, so it won't collide with `pnpm dev` on 3100.
 
 GitHub Actions runs the same checks on every push (`.github/workflows/ci.yml`).
 
 ## Troubleshooting
 
-- **Port 3000 is taken:** `next dev` falls back to 3001, but Supabase Auth redirects, `pnpm jobs:dev` and `pnpm stripe:listen` all expect 3000. Stop whatever else is on 3000.
+- **Port 3100 is taken:** the app runs on 3100 (not Next's usual 3000, so it can run beside other projects). Supabase Auth redirects, `pnpm jobs:dev` and `pnpm stripe:listen` all expect 3100, so stop whatever else is on it.
 - **`supabase start` fails:** make sure Docker Desktop is running. `pnpm exec supabase status` shows what's up.
 - **Emails don't arrive:** they never leave your machine locally; look in Mailpit at http://localhost:54324.
 - **`DATABASE_URL is not set`:** copy `.env.example` to `.env.local`.

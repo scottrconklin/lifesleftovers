@@ -4,7 +4,7 @@ import { serverEnv } from "./env";
 describe("serverEnv", () => {
   it("accepts an empty development environment with defaults", () => {
     const env = serverEnv({ NODE_ENV: "development" });
-    expect(env.APP_URL).toBe("http://localhost:3000");
+    expect(env.APP_URL).toBe("http://localhost:3100");
     expect(env.FAST_CLOCK).toBe(false);
     expect(env.ALLOW_DEV_OTP).toBe(false);
   });

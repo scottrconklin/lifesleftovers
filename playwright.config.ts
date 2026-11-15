@@ -1,7 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Port 3100, not 3000, so e2e runs never collide with (or get answered by) a dev server.
-const PORT = Number(process.env.E2E_PORT ?? 3100);
+// Port 3200, not the dev server's 3100, so an e2e run is never answered by `pnpm dev`.
+const PORT = Number(process.env.E2E_PORT ?? 3200);
 const baseURL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
