@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bid sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B385B}a:hover{color:#12273F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #E9DFCE; color: #1B385B; font-family: 'DM Sans', system-ui, sans-serif">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(27,56,91,0.55)"></div>
+
+  <section role="dialog" aria-labelledby="sheet-title" style="position: absolute; left: 0; right: 0; bottom: 0; background: #FFFFFF; border-radius: 20px 20px 0 0; padding: 10px 20px 28px; display: flex; flex-direction: column; gap: 16px">
+    <div aria-hidden="true" style="align-self: center; width: 40px; height: 5px; border-radius: 3px; background: #D6CCBB"></div>
+    <h1 id="sheet-title" style="margin: 0; font-family: Manrope, sans-serif; font-weight: 800; font-size: 22px">Place a bid</h1>
+
+    <div style="display: flex; align-items: center; gap: 12px">
+      <div style="width: 56px; height: 56px; border-radius: 10px; background: #E9DFCE; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #4F5F70; text-align: center">Photo</div>
+      <div style="flex: 1">
+        <div style="font-weight: 700; font-size: 15px">Vintage red toolbox</div>
+        <div style="font-size: 13px; color: #4F5F70">Current bid $7 · Ends Sun 7:32 PM</div>
+      </div>
+    </div>
+
+    <div>
+      <label for="maxbid" style="display: block; font-weight: 700; font-size: 15px">Your maximum bid</label>
+      <div style="margin-top: 8px; display: flex; align-items: center; gap: 12px">
+        <button type="button" aria-label="Lower bid by $1" onClick="{{dec}}" style="width: 52px; height: 52px; border-radius: 12px; border: 1.5px solid #1B385B; background: #FFFFFF; color: #1B385B; font-size: 26px; font-weight: 700">−</button>
+        <input id="maxbid" type="text" inputmode="numeric" readonly value="{{bidLabel}}" style="flex: 1; min-width: 0; height: 52px; border-radius: 12px; border: 1.5px solid #1B385B; text-align: center; font-family: Manrope, sans-serif; font-weight: 800; font-size: 26px; color: #1B385B; box-sizing: border-box">
+        <button type="button" aria-label="Raise bid by $1" onClick="{{inc}}" style="width: 52px; height: 52px; border-radius: 12px; border: 1.5px solid #1B385B; background: #FFFFFF; color: #1B385B; font-size: 26px; font-weight: 700">+</button>
+      </div>
+      <p style="margin: 8px 0 0; font-size: 13px; color: #4F5F70">We bid for you, only as much as needed to keep you in the lead.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+      <sc-for list="{{picks}}" as="p" hint-placeholder-count="4">
+        <sc-if value="{{p.selected}}" hint-placeholder-val="{{false}}">
+          <button type="button" aria-pressed="true" onClick="{{p.pick}}" style="height: 44px; border-radius: 22px; border: 1.5px solid #1B385B; background: #1B385B; color: #FFFFFF; font-family: inherit; font-weight: 700; font-size: 15px">{{p.label}}</button>
+        </sc-if>
+        <sc-if value="{{p.notSelected}}" hint-placeholder-val="{{true}}">
+          <button type="button" aria-pressed="false" onClick="{{p.pick}}" style="height: 44px; border-radius: 22px; border: 1.5px solid #1B385B; background: #FFFFFF; color: #1B385B; font-family: inherit; font-weight: 700; font-size: 15px">{{p.label}}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <dl style="margin: 0; padding: 14px 16px; background: #F4EBDD; border-radius: 12px; display: grid; grid-template-columns: 1fr auto; row-gap: 6px; font-size: 15px">
+      <dt>Your bid</dt><dd style="margin: 0; text-align: right">{{bidLabel}}</dd>
+      <dt>Buyer’s premium (10%, min $1)</dt><dd style="margin: 0; text-align: right">{{premiumLabel}}</dd>
+      <dt style="font-weight: 700; padding-top: 6px; border-top: 1px solid #D6CCBB">Total if you win</dt><dd style="margin: 0; text-align: right; font-weight: 800; padding-top: 6px; border-top: 1px solid #D6CCBB">{{totalLabel}}</dd>
+    </dl>
+
+    <p style="margin: 0; font-size: 13px; color: #4F5F70">Your card ending 4242 is charged only if you win, when Closing Night ends. No seller fees, no haggling.</p>
+
+    <button type="button" style="height: 56px; border-radius: 12px; border: 0; background: #C43E2A; color: #FFFFFF; font-family: inherit; font-weight: 700; font-size: 18px">Place Bid · {{bidLabel}}</button>
+    <a href="Item.dc.html" style="align-self: center; padding: 10px 16px; font-weight: 700; font-size: 15px; text-decoration: none">Cancel</a>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { bid: 8 };
+  }
+  renderVals() {
+    const bid = this.state.bid;
+    const premium = Math.max(1, Math.round(bid * 0.1));
+    const picks = [8, 10, 15, 20].map((v) => ({
+      label: '$' + v,
+      selected: v === bid,
+      notSelected: v !== bid,
+      pick: () => this.setState({ bid: v })
+    }));
+    return {
+      bidLabel: '$' + bid,
+      premiumLabel: '$' + premium,
+      totalLabel: '$' + (bid + premium),
+      picks: picks,
+      inc: () => this.setState({ bid: bid + 1 }),
+      dec: () => this.setState({ bid: Math.max(8, bid - 1) })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Landing page (desktop)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B385B}a:hover{color:#12273F}
+</style>
+</helmet>
+<div style="background: #F4EBDD; color: #1B385B; font-family: 'DM Sans', system-ui, sans-serif">
+
+  <header style="max-width: 1216px; margin: 0 auto; padding: 20px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+    <span role="img" aria-label="Life's Leftovers" style="display: inline-flex; font-family: Manrope, 'DM Sans', sans-serif; font-weight: 800; letter-spacing: -0.02em; font-size: 26px; line-height: 1.02; color: #1B385B">
+      <span aria-hidden="true"><span style="display: inline-block">Life’s<svg viewBox="0 0 40 40" width="22" height="22" fill="none" style="display: inline-block; vertical-align: top; margin-top: -7px; margin-left: 2px; color: #F5B82E"><line x1="8" y1="22" x2="15" y2="8" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"></line><line x1="16" y1="28" x2="30" y2="17" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"></line><line x1="20" y1="35" x2="35" y2="32" stroke="currentColor" stroke-width="5.5" stroke-linecap="round"></line></svg></span><span style="display: block">Leftovers</span></span>
+    </span>
+    <nav aria-label="Main" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px">
+      <a href="DesktopWall.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 12px; font-weight: 700; font-size: 15px; text-decoration: none">Browse</a>
+      <a href="#how" style="display: inline-flex; align-items: center; height: 44px; padding: 0 12px; font-weight: 700; font-size: 15px; text-decoration: none">How it works</a>
+      <a href="DesktopWall.dc.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 12px; font-weight: 700; font-size: 15px; text-decoration: none">Sign in</a>
+      <a href="Sell.dc.html" style="display: inline-flex; align-items: center; height: 46px; padding: 0 20px; border-radius: 12px; background: #C43E2A; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 16px">Sell an item</a>
+    </nav>
+  </header>
+
+  <section style="max-width: 1216px; margin: 0 auto; padding: 40px 32px 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 48px">
+    <div style="flex: 1 1 420px; min-width: 0">
+      <h1 style="margin: 0; font-family: Manrope, sans-serif; font-weight: 800; font-size: 56px; line-height: 1.04; letter-spacing: -0.025em">Life’s leftovers, auctioned locally.</h1>
+      <p style="margin: 18px 0 0; font-size: 22px; line-height: 1.4">Too good to toss. Not worth shipping.</p>
+      <p style="margin: 10px 0 0; font-size: 17px; line-height: 1.5; color: #4F5F70">Auctions start at $1, end every Sunday night, and get picked up nearby. Free to sell.</p>
+      <div style="margin-top: 28px; display: flex; flex-wrap: wrap; gap: 12px">
+        <a href="Sell.dc.html" style="display: inline-flex; align-items: center; justify-content: center; height: 56px; padding: 0 28px; border-radius: 12px; background: #C43E2A; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 18px">Sell something</a>
+        <a href="DesktopWall.dc.html" style="display: inline-flex; align-items: center; justify-content: center; height: 56px; padding: 0 28px; border-radius: 12px; background: #1B385B; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 18px">See what’s ending near you</a>
+      </div>
+    </div>
+    <div style="flex: 1 1 420px; min-width: 0; height: 380px; border-radius: 20px; background: #E9DFCE; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 32px; box-sizing: border-box; font-size: 15px; color: #4F5F70">Illustration: Closing Night neighborhood, houses under a mustard sun</div>
+  </section>
+
+  <section aria-labelledby="ending" style="max-width: 1216px; margin: 0 auto; padding: 40px 32px 0">
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px">
+      <h2 id="ending" style="margin: 0; font-family: Manrope, sans-serif; font-weight: 800; font-size: 28px">Ending Sunday near you</h2>
+      <a href="DesktopWall.dc.html" style="font-weight: 700; font-size: 16px">See all 142 auctions</a>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px">
+      <sc-for list="{{strip}}" as="c" hint-placeholder-count="4">
+        <a href="Item.dc.html" style="display: block; background: #FFFFFF; border-radius: 12px; overflow: hidden; text-decoration: none; color: #1B385B">
+          <div style="aspect-ratio: 1 / 1; background: #E9DFCE; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #4F5F70; text-align: center; padding: 12px; box-sizing: border-box">Photo: {{c.photo}}</div>
+          <div style="padding: 12px 14px 14px">
+            <div style="font-family: Manrope, sans-serif; font-weight: 700; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.title}}</div>
+            <div style="margin-top: 4px; font-size: 15px"><strong>{{c.price}}</strong> · {{c.bids}}</div>
+            <div style="margin-top: 2px; font-size: 13px; color: #4F5F70">{{c.where}}</div>
+          </div>
+        </a>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="how" aria-label="How it works" style="max-width: 1216px; margin: 0 auto; padding: 56px 32px 0; display: flex; flex-wrap: wrap; gap: 32px">
+    <div style="flex: 1 1 420px; min-width: 0">
+      <h2 style="margin: 0 0 14px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 26px">Selling takes a minute</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #F5B82E; display: flex; align-items: center; justify-content: center; font-weight: 800">1</span><span style="font-size: 16px; line-height: 1.45"><strong>Snap it.</strong> We fill in the title and details from your photos.</span></li>
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #F5B82E; display: flex; align-items: center; justify-content: center; font-weight: 800">2</span><span style="font-size: 16px; line-height: 1.45"><strong>Start it at $1,</strong> or set your own price for nicer things.</span></li>
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #F5B82E; display: flex; align-items: center; justify-content: center; font-weight: 800">3</span><span style="font-size: 16px; line-height: 1.45"><strong>Hand it off after Sunday.</strong> The buyer has already paid.</span></li>
+      </ol>
+    </div>
+    <div style="flex: 1 1 420px; min-width: 0">
+      <h2 style="margin: 0 0 14px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 26px">Buying is the fun part</h2>
+      <ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #1B385B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">1</span><span style="font-size: 16px; line-height: 1.45"><strong>Browse near you.</strong> Everything is a short drive away.</span></li>
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #1B385B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">2</span><span style="font-size: 16px; line-height: 1.45"><strong>Bid what it’s worth to you.</strong> Charged only if you win.</span></li>
+        <li style="display: flex; gap: 14px; align-items: flex-start; padding: 16px 18px; background: #FFFFFF; border-radius: 12px"><span style="flex: none; width: 34px; height: 34px; border-radius: 17px; background: #1B385B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800">3</span><span style="font-size: 16px; line-height: 1.45"><strong>Pick it up nearby.</strong> Inspect it first; the seller is paid after.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section style="max-width: 1216px; margin: 0 auto; padding: 56px 32px 0; display: flex; flex-wrap: wrap; gap: 32px; align-items: stretch">
+    <div aria-labelledby="promise" style="flex: 1 1 420px; min-width: 0; padding: 28px 30px; background: #1B385B; color: #FFFFFF; border-radius: 18px; box-sizing: border-box">
+      <h2 id="promise" style="margin: 0 0 16px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 28px; line-height: 1.2">What Facebook Marketplace should have been.</h2>
+      <ul style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; font-size: 16px">
+        <li style="display: flex; gap: 10px; align-items: center"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#F5B82E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>Free to list and sell</li>
+        <li style="display: flex; gap: 10px; align-items: center"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#F5B82E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>No haggling, no ghosting</li>
+        <li style="display: flex; gap: 10px; align-items: center"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#F5B82E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>No strangers with cash</li>
+        <li style="display: flex; gap: 10px; align-items: center"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#F5B82E" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>No shipping, ever</li>
+      </ul>
+    </div>
+    <div aria-labelledby="weird" style="flex: 1 1 360px; min-width: 0; padding: 20px; background: #FFFFFF; border-radius: 18px; display: flex; gap: 18px; align-items: center; box-sizing: border-box">
+      <div style="flex: none; width: 140px; height: 140px; border-radius: 12px; background: #E9DFCE; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #4F5F70">Photo</div>
+      <div>
+        <span style="display: inline-block; padding: 3px 8px; border-radius: 6px; background: #F5B82E; font-size: 11px; font-weight: 800; letter-spacing: 0.04em">WEIRD OF THE WEEK</span>
+        <h2 id="weird" style="margin: 8px 0 4px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 20px">Singing bass plaque</h2>
+        <p style="margin: 0; font-size: 15px; line-height: 1.45">“My husband’s. It still sings. I can’t take it anymore.”</p>
+        <a href="Item.dc.html" style="display: inline-block; margin-top: 8px; font-weight: 700; font-size: 15px">See the auction</a>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="faq" style="max-width: 1216px; margin: 0 auto; padding: 56px 32px 0">
+    <h2 id="faq" style="margin: 0 0 16px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 26px">Questions</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px">
+      <div style="padding: 18px 20px; background: #FFFFFF; border-radius: 12px"><h3 style="margin: 0; font-size: 16px; font-weight: 700">How does pickup work?</h3><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5">After Closing Night you pick a time the seller offered. The exact address is shared once you’ve paid.</p></div>
+      <div style="padding: 18px 20px; background: #FFFFFF; border-radius: 12px"><h3 style="margin: 0; font-size: 16px; font-weight: 700">What if it isn’t as described?</h3><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5">Don’t confirm pickup. Report it and you’re refunded before the seller is paid.</p></div>
+      <div style="padding: 18px 20px; background: #FFFFFF; border-radius: 12px"><h3 style="margin: 0; font-size: 16px; font-weight: 700">What can’t I sell?</h3><p style="margin: 8px 0 0; font-size: 15px; line-height: 1.5">Weapons, drugs, alcohol, recalled items, counterfeits, live animals and hazardous materials.</p></div>
+    </div>
+  </section>
+
+  <footer style="margin-top: 56px; background: #1B385B; color: #D9E1EA">
+    <div style="max-width: 1216px; margin: 0 auto; padding: 28px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; font-size: 14px">
+      <span>Life’s Leftovers · Houston, TX</span>
+      <nav aria-label="Footer" style="display: flex; flex-wrap: wrap; gap: 20px">
+        <a href="#how" style="color: #FFFFFF">How it works</a>
+        <a href="DesktopLanding.dc.html" style="color: #FFFFFF">Open your city</a>
+        <a href="DesktopLanding.dc.html" style="color: #FFFFFF">Terms</a>
+        <a href="DesktopLanding.dc.html" style="color: #FFFFFF">Privacy</a>
+      </nav>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      strip: [
+        { title: 'Vintage red toolbox', price: '$7', bids: '5 bids', where: '2.4 mi · Katy', photo: 'red metal toolbox' },
+        { title: 'Leather shoulder bag', price: '$38', bids: '4 bids', where: '3.1 mi · Katy', photo: 'brown leather purse' },
+        { title: 'Cheer & lacrosse uniforms', price: '$12', bids: '6 bids', where: '0.8 mi · Katy', photo: 'three bags of uniforms' },
+        { title: 'Mid-century armchair', price: '$45', bids: '7 bids', where: '9.8 mi · Memorial', photo: 'mustard armchair' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

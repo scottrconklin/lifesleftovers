@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Closing Night live</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B385B}a:hover{color:#12273F}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F4EBDD; color: #1B385B; font-family: 'DM Sans', system-ui, sans-serif; display: flex; flex-direction: column">
+
+  <header style="background: #1B385B; color: #FFFFFF; padding: 18px 20px 16px; display: flex; align-items: center; justify-content: space-between">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <a href="Main.dc.html" aria-label="Back to the wall" style="width: 44px; height: 44px; margin-left: -10px; display: flex; align-items: center; justify-content: center; color: #FFFFFF; text-decoration: none">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </a>
+      <div>
+        <div style="font-family: Manrope, sans-serif; font-weight: 800; font-size: 19px">Closing Night</div>
+        <div style="font-size: 13px; color: #D9E1EA">Katy area · item 43 of 142</div>
+      </div>
+    </div>
+    <span style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: #F5B82E; color: #1B385B; font-size: 12px; font-weight: 800; letter-spacing: 0.06em">
+      <span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 4px; background: #C43E2A"></span>LIVE
+    </span>
+  </header>
+
+  <main style="flex: 1; padding: 16px 20px 0; display: flex; flex-direction: column; gap: 14px; overflow: hidden">
+    <section aria-labelledby="now" style="background: #FFFFFF; border-radius: 14px; overflow: hidden">
+      <div style="position: relative; height: 190px; background: #E9DFCE; display: flex; align-items: center; justify-content: center">
+        <span style="font-size: 13px; color: #4F5F70">Photo: three bags of cheer and lacrosse uniforms</span>
+        <span style="position: absolute; top: 10px; left: 10px; padding: 2px 8px; border-radius: 6px; background: #FFFFFF; border: 1.5px solid #1B385B; font-size: 11px; font-weight: 700; letter-spacing: 0.04em">LOT · 3 BAGS</span>
+      </div>
+      <div style="padding: 14px 16px 16px">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.06em; color: #4F5F70">CLOSING NOW</div>
+        <h1 id="now" style="margin: 2px 0 0; font-family: Manrope, sans-serif; font-weight: 800; font-size: 21px">Cheer &amp; lacrosse uniforms</h1>
+        <div style="margin-top: 10px; display: flex; align-items: flex-end; justify-content: space-between">
+          <div>
+            <div style="font-family: Manrope, sans-serif; font-weight: 800; font-size: 30px; line-height: 1">$18</div>
+            <div style="font-size: 13px; color: #4F5F70">11 bids · you’re not bidding</div>
+          </div>
+          <div style="text-align: right">
+            <div aria-label="1 minute 47 seconds left" style="font-family: Manrope, sans-serif; font-weight: 800; font-size: 40px; line-height: 1; color: #C43E2A">1:47</div>
+            <span style="display: inline-block; margin-top: 6px; padding: 2px 8px; border-radius: 6px; background: #FBE3DE; color: #9E2F1F; font-size: 12px; font-weight: 700">Extended +2:00</span>
+          </div>
+        </div>
+        <a href="BidSheet.dc.html" style="margin-top: 14px; display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 12px; background: #C43E2A; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 18px">Place Bid · $19</a>
+      </div>
+    </section>
+
+    <section aria-labelledby="next">
+      <h2 id="next" style="margin: 0 0 8px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 16px">Up next</h2>
+      <div style="background: #FFFFFF; border-radius: 12px">
+        <sc-for list="{{upNext}}" as="row" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #EFE6D7">
+            <span style="width: 64px; font-size: 13px; font-weight: 700">{{row.time}}</span>
+            <span style="flex: 1; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{row.title}}</span>
+            <span style="font-size: 14px; font-weight: 700">{{row.price}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="sold">
+      <h2 id="sold" style="margin: 0 0 8px; font-family: Manrope, sans-serif; font-weight: 800; font-size: 16px">Just sold</h2>
+      <div style="display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: #FFFFFF; border-radius: 12px">
+        <span style="flex: 1; font-size: 14px">Enamel coffee pot</span>
+        <span style="padding: 3px 8px; border-radius: 6px; background: #477A59; color: #FFFFFF; font-size: 12px; font-weight: 700">Sold $9</span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      upNext: [
+        { time: '7:44 PM', title: 'Leather shoulder bag', price: '$38' },
+        { time: '7:45 PM', title: 'Box of mason jars', price: '$4' },
+        { time: '7:46 PM', title: 'Roll of metal flashing', price: 'Free' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
