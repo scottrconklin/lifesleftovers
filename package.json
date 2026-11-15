@@ -1,0 +1,62 @@
+{
+  "name": "lifesleftovers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run --project unit",
+    "test:watch": "vitest --project unit",
+    "test:db": "vitest run --project db",
+    "test:e2e": "playwright test",
+    "db:start": "supabase start && docker compose up -d --wait",
+    "db:stop": "docker compose down && supabase stop",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/reset.ts",
+    "jobs:dev": "inngest-cli dev -u http://localhost:3000/api/inngest --no-discovery",
+    "stripe:listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
+  },
+  "dependencies": {
+    "@sentry/nextjs": "^11.12.0",
+    "drizzle-orm": "^0.45.4",
+    "inngest": "^4.26.2",
+    "lucide-react": "^1.73.0",
+    "next": "16.4.6",
+    "postgres": "^4.1.1",
+    "posthog-js": "^1.449.2",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "stripe": "^23.1.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "@tailwindcss/turbopack": "4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.6",
+    "eslint-config-prettier": "^10.1.8",
+    "inngest-cli": "1.53.0",
+    "prettier": "^3.10.1",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "supabase": "^3.1.0",
+    "tailwindcss": "4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.1.0"
+  },
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

@@ -1,0 +1,11 @@
+# pnpm 11 blocks dependency build scripts unless they're listed here.
+allowBuilds:
+  esbuild: true
+  sharp: true
+  supabase: true
+  unrs-resolver: true
+  "@sentry/cli": true
+  inngest-cli: true
+  # Not needed: funding banner / optional postinstall.
+  core-js: false
+  protobufjs: false
