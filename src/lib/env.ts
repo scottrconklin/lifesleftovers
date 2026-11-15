@@ -61,6 +61,8 @@ const serverShape = z.object({
   // Observability (both off unless set, and only in production)
   NEXT_PUBLIC_SENTRY_DSN: z.url().optional(),
   SENTRY_AUTH_TOKEN: z.string().min(1).optional(),
+  SENTRY_ORG: z.string().min(1).optional(),
+  SENTRY_PROJECT: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1).optional(),
   NEXT_PUBLIC_POSTHOG_HOST: z.url().default("https://us.i.posthog.com"),
 
