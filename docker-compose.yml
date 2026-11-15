@@ -1,0 +1,57 @@
+# Local stand-ins that Supabase's CLI doesn't provide. Started by `pnpm db:start` (after `supabase start`).
+#   storage       S3-compatible object store standing in for Cloudflare R2   API :9000, console :9001
+#   storage-init  one-shot: creates the listings bucket, public-read policy and CORS
+#
+# Email: the Mailpit inbox comes from the Supabase stack ([local_smtp] in supabase/config.toml):
+# inbox http://localhost:54324, SMTP 127.0.0.1:54325. A separate Mailpit here can't receive Supabase
+# Auth mail (GoTrue refuses plaintext SMTP auth to non-localhost hosts, and the CLI requires a user).
+#
+# MinIO no longer publishes container images (removed from Docker Hub and quay.io in 2025), so the
+# R2 stand-in is RustFS, a MinIO-compatible server. See the SPEC Decisions log (Nov 15, 2026).
+name: lifesleftovers
+
+services:
+  storage:
+    image: rustfs/rustfs:1.0.5
+    environment:
+      RUSTFS_ACCESS_KEY: lifesleftovers
+      RUSTFS_SECRET_KEY: lifesleftovers-dev-secret
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - storage-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  storage-init:
+    image: amazon/aws-cli:2.40.3
+    depends_on:
+      storage:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: lifesleftovers
+      AWS_SECRET_ACCESS_KEY: lifesleftovers-dev-secret
+      AWS_DEFAULT_REGION: us-east-1
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        S3="aws --endpoint-url http://storage:9000 s3api"
+        $$S3 head-bucket --bucket listings 2>/dev/null || $$S3 create-bucket --bucket listings
+        # Listing photos are public once uploaded (they've had metadata stripped twice).
+        $$S3 put-bucket-policy --bucket listings --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::listings/*"]}]}'
+        # Browsers upload directly with presigned PUT URLs.
+        $$S3 put-bucket-cors --bucket listings --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:3000","http://127.0.0.1:3000"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}'
+        echo "listings bucket ready"
+    restart: "no"
+
+volumes:
+  storage-data:

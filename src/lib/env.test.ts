@@ -9,6 +9,23 @@ describe("serverEnv", () => {
     expect(env.ALLOW_DEV_OTP).toBe(false);
   });
 
+  it("treats blank values from .env files as unset", () => {
+    const env = serverEnv({
+      NODE_ENV: "development",
+      STRIPE_SECRET_KEY: "",
+      UPSTASH_REDIS_REST_URL: "",
+    });
+    expect(env.STRIPE_SECRET_KEY).toBeUndefined();
+    expect(env.UPSTASH_REDIS_REST_URL).toBeUndefined();
+  });
+
+  it("accepts the committed .env.example as a valid development environment", async () => {
+    const { parseEnv } = await import("node:util");
+    const { readFileSync } = await import("node:fs");
+    const example = parseEnv(readFileSync(".env.example", "utf8"));
+    expect(() => serverEnv({ ...example, NODE_ENV: "development" })).not.toThrow();
+  });
+
   it("parses boolean switches", () => {
     expect(serverEnv({ NODE_ENV: "development", FAST_CLOCK: "1" }).FAST_CLOCK).toBe(true);
     expect(serverEnv({ NODE_ENV: "development", ALLOW_DEV_OTP: "true" }).ALLOW_DEV_OTP).toBe(true);

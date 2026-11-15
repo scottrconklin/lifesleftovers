@@ -20,8 +20,8 @@ const serverShape = z.object({
   // Database (Supabase Postgres + PostGIS)
   DATABASE_URL: z.string().min(1).optional(),
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+  SUPABASE_SECRET_KEY: z.string().min(1).optional(),
 
   // Images (Cloudflare R2; MinIO locally)
   S3_ENDPOINT: z.url().optional(),
@@ -113,10 +113,15 @@ export type ServerEnv = z.infer<typeof serverSchema>;
 
 let cached: ServerEnv | undefined;
 
-/** Parse once; throws with the list of bad variables (names only, never values). */
+/**
+ * Parse once; throws with the list of bad variables (names only, never values).
+ * Blank values (`KEY=` in .env files) count as unset, so documented-but-unconfigured
+ * services fall back to "off" instead of failing validation.
+ */
 export function serverEnv(source: NodeJS.ProcessEnv = process.env): ServerEnv {
   if (source === process.env && cached) return cached;
-  const parsed = serverSchema.safeParse(source);
+  const present = Object.fromEntries(Object.entries(source).filter(([, v]) => v !== ""));
+  const parsed = serverSchema.safeParse(present);
   if (!parsed.success) {
     const problems = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
     throw new Error(`Invalid environment: ${problems}`);

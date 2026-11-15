@@ -3,7 +3,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "server-only": fileURLToPath(new URL("./test/server-only-stub.ts", import.meta.url)),
+    },
   },
   test: {
     projects: [
@@ -23,7 +26,7 @@ export default defineConfig({
           name: "db",
           environment: "node",
           include: ["src/**/*.db.test.ts"],
-          setupFiles: ["./vitest.db-setup.ts"],
+          setupFiles: ["./test/db-setup.ts"],
           fileParallelism: false,
         },
       },
