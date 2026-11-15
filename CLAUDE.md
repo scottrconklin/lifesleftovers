@@ -27,18 +27,25 @@ If the spec and the code disagree, the spec wins. If the spec is silent or ambig
 
 ## Commands
 
-Create these in Milestone 0 and keep this list accurate:
+Keep this list accurate (README.md has setup steps and local URLs):
 
 ```
-pnpm dev            # Next.js dev server
-pnpm db:start       # supabase start (local Postgres, Auth, Realtime) + docker compose (MinIO, Mailpit)
+pnpm dev            # Next.js dev server (http://localhost:3000)
+pnpm db:start       # supabase start (Postgres+PostGIS, Auth, Realtime, Mailpit) + docker compose (RustFS = local R2)
+pnpm db:stop        # stop both (data is kept)
+pnpm db:generate    # generate a Drizzle migration from schema changes (src/db/schema)
 pnpm db:migrate     # apply Drizzle migrations
-pnpm db:seed        # Houston areas, fake users, ~200 listings, a Closing Night
-pnpm db:reset       # wipe and reseed local data
-pnpm jobs:dev       # Inngest dev server
-pnpm stripe:listen  # stripe listen --forward-to localhost:3000/api/webhooks/stripe
-pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e
+pnpm db:seed        # Houston areas, fake users, ~200 listings, a Closing Night (grows per milestone; local only)
+pnpm db:reset       # wipe and reseed local data (local only)
+pnpm jobs:dev       # Inngest dev server (http://localhost:8288), syncs localhost:3000/api/inngest
+pnpm stripe:listen  # stripe listen --forward-to localhost:3000/api/webhooks/stripe (needs the Stripe CLI)
+pnpm format         # Prettier (format:check in CI)
+pnpm lint && pnpm typecheck && pnpm test && pnpm test:db && pnpm test:e2e
 ```
+
+`pnpm test` is unit tests only. `pnpm test:db` needs the local stack (`db:start` + `db:migrate`). `pnpm test:e2e` builds and serves the app on port 3100.
+
+This Next.js version (16.x) differs from older ones: read `node_modules/next/dist/docs/` before using an unfamiliar API (see AGENTS.md). Cache Components is on, so a GET route that must never be cached calls `await connection()`.
 
 ## Non-negotiable rules
 

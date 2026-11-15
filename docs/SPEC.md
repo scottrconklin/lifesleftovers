@@ -36,6 +36,14 @@ These are settled. Change them only on purpose, and add a new row when you do.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| Nov 15, 2026 | Buyer's premium rounds to the nearest cent (half up), minimum $1: a $14 win pays $1.40, not the mockup's whole-dollar $1. The bid sheet shows cents | Matches "10%" exactly and the integer-cents rule; whole-dollar rounding drifts from 10% on small sales |
+| Nov 15, 2026 | All data access is server-side through Drizzle. Supabase JS is used only for Auth sessions and Realtime Broadcast. Every table has RLS on with no anon/authenticated policies, and the `public` schema is not exposed through Supabase's REST API | Keeps the bid transaction, address privacy and contact blocking in one enforced place; nothing can be queried around them from the browser |
+| Nov 15, 2026 | Drizzle owns migrations for the `public` schema (`drizzle/`); Supabase CLI migrations are unused. Supabase's new publishable/secret API keys, not the legacy anon/service-role keys | One migration path in every environment; the legacy keys are being retired |
+| Nov 15, 2026 | Local R2 stand-in is RustFS (MinIO-compatible), not MinIO | MinIO stopped publishing container images in 2025; RustFS speaks the same S3 API with the same ports |
+| Nov 15, 2026 | The single local inbox is the Mailpit bundled with the Supabase CLI (UI :54324, SMTP :54325), not a separate Mailpit in docker-compose | Supabase Auth refuses unauthenticated plaintext SMTP to any host but localhost, so a separate Mailpit can't receive sign-in emails; one inbox catches Auth and app mail |
+| Nov 15, 2026 | Added tokens `brand-tomato-strong` #C43E2A (primary buttons), `brand-tomato-deep` #9E2F1F and `brand-navy-deep` #12273F (hover), and the mockups' neutrals: `brand-ink-muted` #4F5F70, `brand-sand` #E9DFCE, `brand-line` #D6CCBB, `brand-line-strong` #B9AE9C | They're used throughout the approved mockups; named tokens keep raw hex out of components |
+| Nov 15, 2026 | Develop on native Windows with Docker Desktop instead of WSL2; CI runs on Linux. Node 24 LTS pinned | The tools were already installed on Windows and the WSL distro (Ubuntu 20.04) is out of support; CI catches platform differences. Move to Node 26 when Vercel defaults to it |
+| Nov 15, 2026 | Sentry and PostHog run only in production builds with keys set. Sentry collects no user info, cookies, bodies or query strings, and events are scrubbed of emails, phones, card numbers and tokens. PostHog has no session recording and no autocapture | "Never log card data, full addresses, phone numbers or auth tokens"; chat and pickup screens show addresses |
 | Nov 14, 2026 | Brand navy changed from #172D46 to #1B385B | Side-by-side test: the original read as black in the small logo; #1B385B is clearly navy and still about 10:1 on cream |
 | Nov 13, 2026 | Name, domain and brand: Life's Leftovers, LifesLeftovers.com; palette, fonts and design rules in "Brand and design system" | Matches the positioning; brand spec and design board created |
 | Nov 12, 2026 | Any item, any price: $1 is the default start, not a rule; sellers set a visible starting price; no hidden reserves | Early inventory matters more than a narrow theme; hidden reserves frustrate bidders (a common Maxsold complaint) |
@@ -508,9 +516,9 @@ Run Next.js directly on your machine and everything else in Docker, with each ou
 | Next.js on Vercel | `pnpm dev` on your machine | `vercel env pull` copies the project's environment variables into `.env.local` |
 | Postgres + PostGIS (Neon or Supabase) | Docker: the `postgis/postgis` image | If you choose Supabase, its CLI (`supabase start`) runs Postgres, Realtime, Auth and Storage locally in one go |
 | Migrations | Drizzle or Prisma | The same migration files run in every environment; never edit the beta database by hand |
-| Cloudflare R2 | MinIO in Docker (speaks the same S3 API) | Or a separate dev R2 bucket; image resizing can be skipped locally |
+| Cloudflare R2 | RustFS in Docker (MinIO-compatible; speaks the same S3 API) | Or a separate dev R2 bucket; image resizing can be skipped locally. MinIO no longer publishes images (Decisions log, Nov 15) |
 | Stripe | Stripe test mode plus the Stripe CLI | `stripe listen --forward-to localhost:3000/api/webhooks/stripe` sends payment events to your laptop; use Stripe's test card numbers |
-| Email (Resend) | Mailpit in Docker | Catches every outgoing email in a local inbox at a web page |
+| Email (Resend) | Mailpit, bundled with the Supabase CLI | Catches every outgoing email (Supabase Auth and the app) in one local inbox at a web page |
 | Twilio Verify | Twilio test credentials, or a dev-only fixed code | The fixed code must be impossible to turn on in production |
 | Cloudflare Turnstile | Cloudflare's published test keys | One key always passes, one always fails |
 | Scheduled jobs (Inngest) | Inngest dev server (`npx inngest-cli dev`) | Shows every job run in a local dashboard |
@@ -527,7 +535,7 @@ Run Next.js directly on your machine and everything else in Docker, with each ou
 
 1. Install Node.js (current LTS), pnpm, Git and Docker Desktop. On Windows, run everything inside WSL2 (Linux on Windows) for far fewer problems.
 2. Install the Vercel CLI and Stripe CLI.
-3. Clone the repo, copy `.env.example` to `.env.local`, then run `docker compose up` and `pnpm dev`.
+3. Clone the repo, copy `.env.example` to `.env.local`, then run `pnpm db:start`, `pnpm db:migrate` and `pnpm dev` (full steps in README.md).
 4. Run the seed script and open localhost:3000.
 
 Put these steps in the repo's README and CLAUDE.md so Claude Code can run and test the app the same way you do.
