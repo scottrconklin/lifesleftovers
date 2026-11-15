@@ -9,7 +9,10 @@ const eslintConfig = defineConfig([
   prettier,
   {
     rules: {
-      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       // Never log card data, addresses, phone numbers or tokens; keep console use deliberate.
       "no-console": ["warn", { allow: ["warn", "error", "info"] }],
     },

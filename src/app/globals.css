@@ -1,26 +1,126 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Brand tokens — docs/SPEC.md "Brand and design system".
+ * The five brand colors are verbatim from the spec. The supporting neutrals and the
+ * stronger/deeper shades come from the approved mockups (docs/design/mockups) and are
+ * recorded in the SPEC Decisions log. Use these tokens; never raw hex in components.
+ */
+@theme {
+  --color-brand-navy: #1b385b;
+  --color-brand-cream: #f4ebdd;
+  --color-brand-tomato: #d94b35;
+  --color-brand-mustard: #f5b82e;
+  --color-brand-avocado: #477a59;
+
+  /* Primary buttons: white text on #D94B35 is ~4.2:1, so buttons use this (~5.2:1). */
+  --color-brand-tomato-strong: #c43e2a;
+  /* Hover/pressed shades. */
+  --color-brand-tomato-deep: #9e2f1f;
+  --color-brand-navy-deep: #12273f;
+
+  /* Neutrals from the mockups. */
+  --color-brand-ink-muted: #4f5f70; /* secondary text; ~5.6:1 on cream, ~6.4:1 on white */
+  --color-brand-sand: #e9dfce; /* section tints, skeletons */
+  --color-brand-line: #d6ccbb; /* dividers, input borders */
+  --color-brand-line-strong: #b9ae9c;
+
+  --font-sans: var(--font-dm-sans), "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-manrope), "Manrope", "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-display);
 }
 
+/* shadcn/ui semantic variables, mapped onto the brand tokens. */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.5);
+  --radius-md: calc(var(--radius) * 0.85);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  --background: var(--color-brand-cream);
+  --foreground: var(--color-brand-navy);
+  --card: #ffffff; /* surface-white: auction cards are always pure white */
+  --card-foreground: var(--color-brand-navy);
+  --popover: #ffffff;
+  --popover-foreground: var(--color-brand-navy);
+  --primary: var(--color-brand-tomato-strong);
+  --primary-foreground: #ffffff;
+  --secondary: var(--color-brand-navy);
+  --secondary-foreground: #ffffff;
+  --muted: var(--color-brand-sand);
+  --muted-foreground: var(--color-brand-ink-muted);
+  --accent: var(--color-brand-mustard);
+  --accent-foreground: var(--color-brand-navy);
+  --destructive: var(--color-brand-tomato-strong);
+  --border: var(--color-brand-line);
+  --input: var(--color-brand-line);
+  --ring: var(--color-brand-navy);
+  --radius: 0.75rem; /* 12px cards, per the mockups */
+}
+
+/* No dark mode in V1: the cream canvas is part of the brand. */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: light;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display;
+  }
+  /* Brand rule: no italics anywhere. */
+  em,
+  i,
+  cite,
+  dfn,
+  var,
+  address {
+    font-style: normal;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
