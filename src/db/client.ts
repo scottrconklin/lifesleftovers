@@ -24,3 +24,10 @@ export function getDb() {
 }
 
 export type Db = ReturnType<typeof getDb>;
+
+/** Close the pool and forget it (tests and scripts), so a later getSql() opens a fresh one. */
+export async function closeDb(): Promise<void> {
+  const client = globalForDb.pgClient;
+  globalForDb.pgClient = undefined;
+  await client?.end();
+}

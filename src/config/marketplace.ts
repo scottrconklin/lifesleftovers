@@ -117,6 +117,16 @@ export const marketplaceConfig = {
     reschedulesAllowed: 1,
   },
 
+  accounts: {
+    /** Public display names are trimmed and capped at this many characters. */
+    displayNameMaxLength: 40,
+    /**
+     * Reject internet (VoIP) numbers with Twilio Lookup's line-type check before texting a code.
+     * Off until the owner turns it on: each lookup costs about $0.008 (Decisions log, Nov 15).
+     */
+    rejectVoipNumbers: false,
+  },
+
   notifications: {
     /** "Ending soon" goes out this long before ends_at. */
     endingSoonSeconds: 1 * HOUR_SECONDS,

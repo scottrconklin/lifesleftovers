@@ -1,10 +1,10 @@
 import { afterAll, describe, expect, it } from "vitest";
-import { getSql } from "./client";
+import { closeDb, getSql } from "./client";
 
 // Integration: needs `pnpm db:start && pnpm db:migrate`.
 describe("database (local Supabase)", () => {
   const sql = getSql();
-  afterAll(() => sql.end());
+  afterAll(() => closeDb());
 
   it("has PostGIS from the first migration", async () => {
     const [row] = await sql<{ v: string }[]>`select extensions.postgis_version() as v`;

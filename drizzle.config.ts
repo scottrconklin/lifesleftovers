@@ -11,6 +11,8 @@ export default defineConfig({
   dialect: "postgresql",
   schema: "./src/db/schema/index.ts",
   out: "./drizzle",
+  // Matches the runtime client (src/db/client.ts): camelCase in TS, snake_case in Postgres.
+  casing: "snake_case",
   dbCredentials: { url },
   // Drizzle owns the public schema only; Supabase manages auth, storage, realtime, extensions.
   schemaFilter: ["public"],
