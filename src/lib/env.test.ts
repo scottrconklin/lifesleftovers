@@ -31,14 +31,24 @@ describe("serverEnv", () => {
     expect(serverEnv({ NODE_ENV: "development", ALLOW_DEV_OTP: "true" }).ALLOW_DEV_OTP).toBe(true);
   });
 
-  it("refuses dev-only switches in production", () => {
-    expect(() => serverEnv({ NODE_ENV: "production", ALLOW_DEV_OTP: "1" })).toThrow(
-      /ALLOW_DEV_OTP/,
-    );
-    expect(() => serverEnv({ NODE_ENV: "production", FAST_CLOCK: "1" })).toThrow(/FAST_CLOCK/);
+  it("refuses dev-only switches on the production deployment", () => {
+    const prod = { NODE_ENV: "production", VERCEL_ENV: "production" } as const;
+    expect(() => serverEnv({ ...prod, ALLOW_DEV_OTP: "1" })).toThrow(/ALLOW_DEV_OTP/);
+    expect(() => serverEnv({ ...prod, FAST_CLOCK: "1" })).toThrow(/FAST_CLOCK/);
+  });
+
+  it("allows dev switches in local production builds (e2e) and previews", () => {
+    expect(serverEnv({ NODE_ENV: "production", ALLOW_DEV_OTP: "1" }).ALLOW_DEV_OTP).toBe(true);
+    expect(
+      serverEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", ALLOW_DEV_OTP: "1" })
+        .ALLOW_DEV_OTP,
+    ).toBe(true);
   });
 
   it("refuses live Stripe keys outside production", () => {
+    expect(() =>
+      serverEnv({ NODE_ENV: "production", VERCEL_ENV: "preview", STRIPE_SECRET_KEY: "sk_live_x" }),
+    ).toThrow(/STRIPE_SECRET_KEY/);
     expect(() => serverEnv({ NODE_ENV: "development", STRIPE_SECRET_KEY: "sk_live_abc" })).toThrow(
       /STRIPE_SECRET_KEY/,
     );

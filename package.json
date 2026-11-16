@@ -14,7 +14,7 @@
     "test:watch": "vitest --project unit",
     "test:db": "vitest run --project db",
     "test:e2e": "playwright test",
-    "db:start": "supabase start && docker compose up -d --wait",
+    "db:start": "tsx scripts/local-env.ts prepare && supabase start && docker compose up -d --wait && tsx scripts/local-env.ts sync",
     "db:stop": "docker compose down && supabase stop",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "@sentry/nextjs": "^11.12.0",
+    "@supabase/ssr": "0.12.7",
+    "@supabase/supabase-js": "2.119.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "drizzle-orm": "^0.45.4",

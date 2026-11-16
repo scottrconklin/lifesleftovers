@@ -15,6 +15,8 @@ const bool = z
 
 const serverShape = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  // Set by Vercel on every deployment. "production" marks the live site; see isProductionDeployment.
+  VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
   APP_URL: z.url().default("http://localhost:3100"),
 
   // Database (Supabase Postgres + PostGIS)
@@ -80,7 +82,7 @@ const serverShape = z.object({
   // Exact pickup addresses are encrypted with this key (32 bytes, base64).
   ADDRESS_ENCRYPTION_KEY: z.string().min(1).optional(),
 
-  // Dev-only switches — refused in production below.
+  // Dev-only switches — refused on the production deployment below.
   FAST_CLOCK: bool,
   ALLOW_DEV_OTP: bool,
 });
@@ -90,8 +92,17 @@ export const serverEnvKeys = Object.keys(serverShape.shape) as Array<
   keyof typeof serverShape.shape
 >;
 
+/**
+ * The live site, as opposed to a local machine, CI or a preview. Keyed on Vercel's own
+ * VERCEL_ENV (set automatically, so it can't be forgotten) rather than NODE_ENV, because local
+ * `next start` builds (e2e tests) also run with NODE_ENV=production.
+ */
+export function isProductionDeployment(env: { VERCEL_ENV?: string | undefined }): boolean {
+  return env.VERCEL_ENV === "production";
+}
+
 const serverSchema = serverShape.superRefine((env, ctx) => {
-  if (env.NODE_ENV === "production") {
+  if (isProductionDeployment(env)) {
     for (const key of ["FAST_CLOCK", "ALLOW_DEV_OTP"] as const) {
       if (env[key]) {
         ctx.addIssue({
