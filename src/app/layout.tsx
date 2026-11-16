@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, Manrope } from "next/font/google";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 const manrope = Manrope({
@@ -31,7 +32,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${manrope.variable} ${dmSans.variable} h-full`}>
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <SiteHeader />
+        {children}
+      </body>
     </html>
   );
 }
