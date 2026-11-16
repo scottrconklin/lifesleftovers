@@ -42,8 +42,9 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: cp .env.example .env.local
-      # Milestone 0 needs Postgres only. Re-include gotrue, kong and realtime once tests use Auth/Realtime.
+      - name: Create local env files from the examples
+        run: pnpm exec tsx scripts/local-env.ts prepare
+      # DB tests need Postgres only.
       - name: Start Supabase (Postgres only)
         run: >-
           pnpm exec supabase start
@@ -67,9 +68,21 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: cp .env.example .env.local
+      - name: Create local env files from the examples
+        run: pnpm exec tsx scripts/local-env.ts prepare
+      # Sign-in tests need Auth (gotrue), its API gateway (kong) and Mailpit for the emails.
+      - name: Start Supabase (Postgres, Auth, Mailpit)
+        run: >-
+          pnpm exec supabase start
+          -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Fill the local Supabase keys into .env.local
+        run: pnpm exec tsx scripts/local-env.ts sync
+      - run: pnpm db:migrate
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - name: Stop Supabase
+        if: always()
+        run: pnpm exec supabase stop --no-backup
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

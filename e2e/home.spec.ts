@@ -1,9 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-test.describe("home page (Milestone 0 placeholder)", () => {
+test.describe("home page (placeholder until Milestone 8)", () => {
   test("shows the Life's Leftovers logo with an accessible name", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("img", { name: "Life's Leftovers" })).toBeVisible();
+    await expect(
+      page.getByRole("main").getByRole("img", { name: "Life's Leftovers" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "Life's Leftovers home" })).toBeVisible();
     await expect(page).toHaveTitle("Life's Leftovers");
   });
 
@@ -13,6 +16,7 @@ test.describe("home page (Milestone 0 placeholder)", () => {
     expect(body).toBe("rgb(244, 235, 221)"); // brand-cream #F4EBDD
 
     const logoFont = await page
+      .getByRole("main")
       .getByRole("img", { name: "Life's Leftovers" })
       .evaluate((el) => getComputedStyle(el).fontFamily);
     expect(logoFont).toMatch(/Manrope/i);
