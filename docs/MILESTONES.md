@@ -10,28 +10,28 @@ Target, from the spec's 90-day plan: Milestones 0–9 by mid-December (private b
 
 Spec: "Development environment and private beta", "Build defaults", "Brand and design system"
 
-- [ ] Next.js (App Router, TypeScript strict), pnpm, ESLint, Prettier.
-- [ ] Tailwind v4 with the brand tokens; Manrope + DM Sans via `next/font/google`; `BrandLogo` component from the spec.
-- [ ] Supabase local (`supabase start`), Drizzle set up, first migration runs.
-- [ ] `docker-compose.yml` for MinIO (S3 stand-in) and Mailpit.
-- [ ] `src/config/marketplace.ts` with every number from "Build defaults".
-- [ ] `.env.example` with every variable documented.
-- [ ] Vitest and Playwright running, one passing test each.
-- [ ] GitHub Actions: lint, typecheck, unit and e2e tests on every push.
-- [ ] Sentry and PostHog wired in (disabled locally).
-- [ ] The scripts listed in CLAUDE.md "Commands" all work.
+- [x] Next.js (App Router, TypeScript strict), pnpm, ESLint, Prettier.
+- [x] Tailwind v4 with the brand tokens; Manrope + DM Sans via `next/font/google`; `BrandLogo` component from the spec.
+- [x] Supabase local (`supabase start`), Drizzle set up, first migration runs.
+- [x] `docker-compose.yml` for MinIO (S3 stand-in) and Mailpit.
+- [x] `src/config/marketplace.ts` with every number from "Build defaults".
+- [x] `.env.example` with every variable documented.
+- [x] Vitest and Playwright running, one passing test each.
+- [x] GitHub Actions: lint, typecheck, unit and e2e tests on every push.
+- [x] Sentry and PostHog wired in (disabled locally).
+- [x] The scripts listed in CLAUDE.md "Commands" all work.
 
 ## M1 — Accounts and verification
 
 Spec: "Who has to provide what, and when", "How the safety features work"
 
-- [ ] Anyone can browse with no account.
-- [ ] Sign in with email link or Google (Supabase Auth; no Apple in V1); Turnstile on sign-up.
-- [ ] Phone check through Twilio Verify, with VoIP numbers rejected; one account per phone number.
-- [ ] Phone check required at first bid or first listing, not at sign-up.
-- [ ] Dev-only fixed verification code that can't be enabled in production.
-- [ ] Profile: display name, avatar initials, home zip.
-- [ ] Account deletion from settings.
+- [x] Anyone can browse with no account.
+- [x] Sign in with email link or Google (Supabase Auth; no Apple in V1); Turnstile on sign-up.
+- [x] Phone check through Twilio Verify, with VoIP numbers rejected; one account per phone number.
+- [x] Phone check required at first bid or first listing, not at sign-up.
+- [x] Dev-only fixed verification code that can't be enabled in production.
+- [x] Profile: display name, avatar initials, home zip.
+- [x] Account deletion from settings.
 
 ## M2 — Metros, areas and location
 

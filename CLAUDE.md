@@ -31,7 +31,7 @@ Keep this list accurate (README.md has setup steps and local URLs):
 
 ```
 pnpm dev            # Next.js dev server (http://localhost:3100)
-pnpm db:start       # supabase start (Postgres+PostGIS, Auth, Realtime, Mailpit) + docker compose (RustFS = local R2)
+pnpm db:start       # supabase start (Postgres+PostGIS, Auth, Realtime, Mailpit) + docker compose (RustFS = local R2); creates .env.local / supabase/.env and fills local Supabase keys
 pnpm db:stop        # stop both (data is kept)
 pnpm db:generate    # generate a Drizzle migration from schema changes (src/db/schema)
 pnpm db:migrate     # apply Drizzle migrations
@@ -43,9 +43,11 @@ pnpm format         # Prettier (format:check in CI)
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:db && pnpm test:e2e
 ```
 
-`pnpm test` is unit tests only. `pnpm test:db` needs the local stack (`db:start` + `db:migrate`). `pnpm test:e2e` builds and serves the app on port 3200 (the dev server uses 3100).
+`pnpm test` is unit tests only. `pnpm test:db` needs the local stack (`db:start` + `db:migrate`). `pnpm test:e2e` builds and serves the app on port 3200 (the dev server uses 3100) and needs the local stack too (sign-in tests read emails from Mailpit).
 
 This Next.js version (16.x) differs from older ones: read `node_modules/next/dist/docs/` before using an unfamiliar API (see AGENTS.md). Cache Components is on, so a GET route that must never be cached calls `await connection()`.
+
+Who's signed in comes only from `src/server/auth/session.ts` (`getViewer`, `requireViewer`, `requireStep("list" | "bid")`). Anything that reads the session renders inside a `<Suspense>` boundary with a skeleton fallback, and Server Actions re-check the session themselves. Route Handlers redirect with relative paths (`src/server/auth/redirect.ts`).
 
 ## Non-negotiable rules
 
