@@ -36,6 +36,8 @@ pnpm jobs:dev      # in another terminal: Inngest dev server
 pnpm stripe:listen # in another terminal, when working on payments
 ```
 
+After the first `pnpm db:start`, copy the **Secret** key from `pnpm exec supabase status` into `SUPABASE_SECRET_KEY` in `.env.local`. It's the CLI's fixed local key, left out of `.env.example` so nothing secret-shaped is committed.
+
 `pnpm db:stop` stops the stack and keeps its data; `pnpm db:reset` wipes the local database and reseeds it.
 
 ### Local URLs
