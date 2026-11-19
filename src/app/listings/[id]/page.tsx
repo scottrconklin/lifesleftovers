@@ -3,12 +3,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { cancelListing } from "@/app/sell/actions";
+import { cancelListing, endListing, relistNow } from "@/app/sell/actions";
 import { Avatar } from "@/components/Avatar";
 import { FormMessage } from "@/components/forms/FormMessage";
 import { SubmitButton } from "@/components/forms/SubmitButton";
 import { AuctionPanel } from "@/components/item/AuctionPanel";
+import { ClosedAuction } from "@/components/item/ClosedAuction";
 import { PhotoGallery } from "@/components/item/PhotoGallery";
+import { WantButton } from "@/components/item/WantButton";
 import { WatchButton } from "@/components/item/WatchButton";
 import { ListingBadges } from "@/components/listings/Badges";
 import { SellerNoteForm } from "@/components/listings/SellerNoteForm";
@@ -24,10 +26,12 @@ import {
   SIZE_HINTS,
 } from "@/lib/listing-options";
 import { editPermissions } from "@/lib/listing-rules";
+import { marketplaceConfig } from "@/config/marketplace";
 import { formatCents } from "@/lib/money";
 import { withNext } from "@/lib/next-path";
 import { localDate, weekdayName } from "@/lib/time";
 import { auctionForListing, bidStanding, hasEverBid } from "@/server/auctions/service";
+import { wantStatus } from "@/server/auctions/want";
 import { isWatching } from "@/server/auctions/watch";
 import { getViewer } from "@/server/auth/session";
 import { findZip, milesBetweenZips } from "@/server/geo/places";
@@ -41,6 +45,7 @@ import {
   listPhotos,
   sellerSummary,
 } from "@/server/listings/repo";
+import { outcomeForAuction } from "@/server/orders/repo";
 import { defaultCard } from "@/server/payments/cards";
 
 export const metadata: Metadata = { title: "Listing" };
@@ -65,6 +70,8 @@ const STATUS_TEXT: Record<string, string> = {
   live: "Live",
   cancelled: "Cancelled",
   removed: "Removed by Life's Leftovers",
+  sold: "Sold",
+  ended: "Ended unsold",
 };
 
 async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
@@ -95,8 +102,22 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
   const timeZone = schedule?.timeZone ?? "America/Chicago";
   const now = new Date();
 
+  const auctionOpen = auction?.status === "open";
   // The badge follows the auction's actual end (in the metro's zone), not just the listing's date.
-  const closingDay = auction ? localDate(auction.endsAt, timeZone) : listing.closingNightDate;
+  const closingDay = !auction
+    ? listing.closingNightDate
+    : auctionOpen
+      ? localDate(auction.endsAt, timeZone)
+      : null;
+  // Whether an unsold run comes back next week: not when the seller chose "end", and not when
+  // this is the run that triggers the "what now?" prompt.
+  const relists =
+    listing.unsoldAction !== "end" &&
+    listing.unsoldRuns + 1 < marketplaceConfig.listings.unsoldRunsBeforePrompt;
+  const [outcome, want] = await Promise.all([
+    auction && !auctionOpen ? outcomeForAuction(auction.id, viewer?.id ?? null) : null,
+    auction && auctionOpen && auction.isFree ? wantStatus(auction.id, viewer?.id ?? null) : null,
+  ]);
   const [watching, standing, card, firstBid] = viewer
     ? await Promise.all([
         isWatching(viewer.id, id),
@@ -146,6 +167,11 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
             : "Thanks! A person will check this listing before it goes live."}
         </FormMessage>
       ) : null}
+      {query.relisted ? (
+        <FormMessage tone="success" className="rounded-xl bg-white px-4 py-3 text-base">
+          Relisted! It&apos;s in the next Closing Night as a Second Chance.
+        </FormMessage>
+      ) : null}
       {query.saved ? (
         <FormMessage tone="success" className="rounded-xl bg-white px-4 py-3 text-base">
           Changes saved.
@@ -172,6 +198,7 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
           isFree={listing.isFree}
           isLot={listing.isLot}
           lotItemCount={listing.lotItemCount}
+          secondChance={listing.secondChance && auctionOpen}
         />
         <h1 className="mt-1 font-display text-[25px] leading-tight font-extrabold text-brand-navy">
           {title}
@@ -179,8 +206,11 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
         {location2 ? <div className="mt-1 text-sm text-brand-ink-muted">{location2}</div> : null}
       </div>
 
-      {auction ? (
+      {auction && !auctionOpen ? (
+        <ClosedAuction outcome={outcome} bidCount={auction.bidCount} isOwner={Boolean(own)} />
+      ) : auction ? (
         <AuctionPanel
+          key={auction.id}
           listingId={id}
           title={title}
           coverUrl={
@@ -202,15 +232,15 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
               timeZone,
               bidCount: auction.bidCount,
               currentPriceCents: auction.currentPriceCents,
-              relists: listing.unsoldAction !== "end",
+              relists,
             });
             return c.text.startsWith("Ends ") ? daysHoursLeft(now, auction.endsAt) : c.text;
           })()}
           timeZone={timeZone}
           isFree={auction.isFree}
           startPriceCents={auction.startPriceCents}
-          relists={listing.unsoldAction !== "end"}
-          open={auction.status === "open"}
+          relists={relists}
+          open={auctionOpen}
           isOwner={Boolean(own)}
           viewer={bidViewer}
           initialStanding={standing}
@@ -230,13 +260,22 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
         </div>
       )}
 
+      {auction && want && !own ? (
+        <WantButton
+          listingId={id}
+          auctionId={auction.id}
+          initialWanted={want.wanted}
+          initialCount={want.count}
+        />
+      ) : null}
+
       {own ? (
         <section aria-labelledby="yours" className="flex flex-col gap-3 rounded-xl bg-white p-4">
           <h2 id="yours" className="text-sm font-bold text-brand-navy">
             Your listing · {STATUS_TEXT[listing.status]}
           </h2>
           <div className="flex flex-wrap gap-2">
-            {permissions.editEverything ? (
+            {permissions.editEverything && !permissions.relist ? (
               <Link
                 href={listing.status === "draft" ? `/sell/${id}` : `/sell/${id}/review`}
                 className={buttonVariants({ variant: "outline", className: "bg-white" })}
@@ -253,6 +292,9 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
               </form>
             ) : null}
           </div>
+          {permissions.relist ? (
+            <UnsoldChoices listingId={id} askedToDecide={listing.needsDecision} />
+          ) : null}
           {permissions.addNotes ? <SellerNoteForm listingId={id} /> : null}
           {proof.length > 0 ? (
             <p className="text-sm text-brand-ink-muted">
@@ -328,5 +370,58 @@ async function Item({ params, searchParams }: PageProps<"/listings/[id]">) {
         pick it up. Exact address shared after payment.
       </p>
     </article>
+  );
+}
+
+/**
+ * An item that ended unsold. After two unsold runs the seller is asked: make it free, bundle it
+ * into a lot, or end it (SPEC "When nothing sells"); otherwise they can relist it anytime.
+ */
+function UnsoldChoices({
+  listingId,
+  askedToDecide,
+}: {
+  listingId: string;
+  askedToDecide: boolean;
+}) {
+  const outline = buttonVariants({ variant: "outline", className: "bg-white" });
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[15px] text-brand-navy">
+        {askedToDecide
+          ? "Two Closing Nights and no takers. What would you like to do?"
+          : "It didn't sell this time. Relisting is always free."}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {askedToDecide ? (
+          <>
+            <form action={relistNow}>
+              <input type="hidden" name="listingId" value={listingId} />
+              <input type="hidden" name="free" value="1" />
+              <SubmitButton pendingLabel="Relisting…">Make it free</SubmitButton>
+            </form>
+            <Link href={`/sell/${listingId}/review?bundle=1`} className={outline}>
+              Bundle it into a lot
+            </Link>
+            <form action={endListing}>
+              <input type="hidden" name="listingId" value={listingId} />
+              <SubmitButton pendingLabel="Ending…" variant="outline" className="bg-white">
+                End it
+              </SubmitButton>
+            </form>
+          </>
+        ) : (
+          <>
+            <form action={relistNow}>
+              <input type="hidden" name="listingId" value={listingId} />
+              <SubmitButton pendingLabel="Relisting…">Relist it</SubmitButton>
+            </form>
+            <Link href={`/sell/${listingId}/review`} className={outline}>
+              Edit and relist
+            </Link>
+          </>
+        )}
+      </div>
+    </div>
   );
 }

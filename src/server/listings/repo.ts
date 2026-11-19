@@ -126,6 +126,7 @@ export type SellerListing = Pick<
   | "isFree"
   | "isLot"
   | "closingNightDate"
+  | "needsDecision"
   | "updatedAt"
 > & { coverKey: string | null; metroStatus: string | null; metroShortName: string | null };
 
@@ -139,6 +140,7 @@ export async function sellerListings(sellerId: string): Promise<SellerListing[]>
       isFree: listings.isFree,
       isLot: listings.isLot,
       closingNightDate: listings.closingNightDate,
+      needsDecision: listings.needsDecision,
       updatedAt: listings.updatedAt,
       metroStatus: metros.status,
       metroShortName: metros.shortName,
@@ -173,7 +175,10 @@ export async function liveListingCount(metroId: string): Promise<number> {
   return row?.n ?? 0;
 }
 
-/** A listing anyone may see: live, in an open metro. Owners see their own through findOwnListing. */
+/**
+ * A listing anyone may see: live, sold or ended, in an open metro (closed auctions keep their page
+ * so a shared link still says how it went). Owners see their own through findOwnListing.
+ */
 export async function findPublicListing(listingId: string) {
   if (!isUuid(listingId)) return undefined;
   const [row] = await getDb()
@@ -181,7 +186,13 @@ export async function findPublicListing(listingId: string) {
     .from(listings)
     .innerJoin(users, eq(users.id, listings.sellerId))
     .innerJoin(metros, eq(metros.id, listings.metroId))
-    .where(and(eq(listings.id, listingId), eq(listings.status, "live"), eq(metros.status, "open")))
+    .where(
+      and(
+        eq(listings.id, listingId),
+        inArray(listings.status, ["live", "sold", "ended"]),
+        eq(metros.status, "open"),
+      ),
+    )
     .limit(1);
   return row;
 }
@@ -193,6 +204,7 @@ export type NearbyListing = {
   isFree: boolean;
   isLot: boolean;
   lotItemCount: number | null;
+  secondChance: boolean;
   closingNightDate: string | null;
   areaName: string | null;
   miles: number;
@@ -221,6 +233,7 @@ export async function nearbyLiveListings(
       is_free: boolean;
       is_lot: boolean;
       lot_item_count: number | null;
+      second_chance: boolean;
       closing_night_date: string | null;
       area_name: string | null;
       miles: number;
@@ -232,7 +245,7 @@ export async function nearbyLiveListings(
     }>
   >`
     select l.id, l.title, l.start_price_cents, l.is_free, l.is_lot, l.lot_item_count,
-      l.closing_night_date::text as closing_night_date, a.name as area_name,
+      l.second_chance, l.closing_night_date::text as closing_night_date, a.name as area_name,
       extensions.st_distance(z.location, o.location) / ${METERS_PER_MILE}::float8 as miles,
       (select p.storage_key from public.listing_photos p
         where p.listing_id = l.id order by p.position limit 1) as cover_key,
@@ -253,6 +266,7 @@ export async function nearbyLiveListings(
     isFree: r.is_free,
     isLot: r.is_lot,
     lotItemCount: r.lot_item_count,
+    secondChance: r.second_chance,
     closingNightDate: r.closing_night_date,
     areaName: r.area_name,
     miles: Number(r.miles),

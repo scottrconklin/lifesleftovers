@@ -200,6 +200,7 @@ describe("edit rules", () => {
       addPhotos: true,
       addNotes: false,
       cancel: true,
+      relist: false,
     });
   });
 
@@ -209,18 +210,27 @@ describe("edit rules", () => {
       addPhotos: true,
       addNotes: true,
       cancel: false,
+      relist: false,
     });
   });
 
-  it("freezes cancelled and removed listings", () => {
-    for (const status of ["cancelled", "removed"] as const) {
-      expect(Object.values(editPermissions({ status, bidCount: 0 }))).toEqual([
-        false,
-        false,
-        false,
-        false,
-      ]);
+  it("freezes cancelled, removed and sold listings", () => {
+    for (const status of ["cancelled", "removed", "sold"] as const) {
+      expect(Object.values(editPermissions({ status, bidCount: 0 })).every((v) => !v)).toBe(true);
     }
+    expect(Object.values(editPermissions({ status: "sold", bidCount: 3 })).every((v) => !v)).toBe(
+      true,
+    );
+  });
+
+  it("lets the seller edit and relist an item that ended unsold", () => {
+    expect(editPermissions({ status: "ended", bidCount: 0 })).toEqual({
+      editEverything: true,
+      addPhotos: true,
+      addNotes: false,
+      cancel: false,
+      relist: true,
+    });
   });
 
   it("drafts are edited, not cancelled", () => {

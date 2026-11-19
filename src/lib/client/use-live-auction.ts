@@ -2,12 +2,12 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { isAuctionUpdate, type AuctionUpdate } from "@/lib/realtime";
+import { isAuctionClosed, isAuctionUpdate, type AuctionUpdate } from "@/lib/realtime";
 
 let client: SupabaseClient | undefined;
 
 /** One browser client, for Realtime only (no session, no data queries). */
-function realtimeClient(): SupabaseClient | null {
+export function realtimeClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return null;
@@ -19,11 +19,13 @@ function realtimeClient(): SupabaseClient | null {
 
 /**
  * Live price, bid count and end time for one auction, starting from what the server rendered.
- * `onUpdate` runs for each broadcast (e.g. to re-check "you're winning / outbid").
+ * `onUpdate` runs for each broadcast (e.g. to re-check "you're winning / outbid"); `onClosed`
+ * when the closing job has closed it (sold, or unsold and relisted or ended).
  */
 export function useLiveAuction(
   initial: AuctionUpdate,
   onUpdate?: (update: AuctionUpdate) => void,
+  onClosed?: () => void,
 ): AuctionUpdate {
   const [state, setState] = useState(initial);
 
@@ -37,11 +39,14 @@ export function useLiveAuction(
         setState((prev) => (payload.bidCount >= prev.bidCount ? payload : prev));
         onUpdate?.(payload);
       })
+      .on("broadcast", { event: "closed" }, ({ payload }) => {
+        if (isAuctionClosed(payload) && payload.auctionId === initial.auctionId) onClosed?.();
+      })
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-    // onUpdate is read at call time; resubscribing on every render would drop messages.
+    // The callbacks are read at call time; resubscribing on every render would drop messages.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial.auctionId]);
 

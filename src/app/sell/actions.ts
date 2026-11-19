@@ -316,6 +316,7 @@ export async function postListing(previous: PostState, formData: FormData): Prom
 
   // Bot check on a new listing (SPEC: Turnstile on sign-up, listing and first bid).
   const firstPost = listing.status === "draft";
+  const relisting = listing.status === "ended";
   if (firstPost) {
     const remoteIp = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim();
     if (!(await verifyTurnstile(String(formData.get("captchaToken") ?? ""), { remoteIp }))) {
@@ -376,12 +377,16 @@ export async function postListing(previous: PostState, formData: FormData): Prom
     moderation,
     status: moderation.verdict === "flagged" ? "in_review" : "live",
     postedAt: listing.postedAt ?? new Date(),
+    // Relisting an item that ended unsold: a fresh start, tagged Second Chance.
+    ...(relisting ? { unsoldRuns: 0, needsDecision: false, secondChance: true } : {}),
   });
   // Live in an open metro → an open auction (or refresh its price and date, before any bids).
   await syncAuctionForListing(listing.id);
   if (moderation.verdict === "flagged") await cancelOpenAuction(listing.id);
   await recordDevice(viewer.id);
-  redirect(`/listings/${listing.id}${firstPost ? "?posted=1" : "?saved=1"}`);
+  redirect(
+    `/listings/${listing.id}${firstPost ? "?posted=1" : relisting ? "?relisted=1" : "?saved=1"}`,
+  );
 }
 
 /** Cancel only before bids (SPEC "Edit or cancel a listing"). */
@@ -443,4 +448,44 @@ export async function reportPhotoProblem(input: {
     `Photo problem at "${clean(input.step)}": ${clean(input.error) || "unknown"} ` +
       `(type ${clean(input.fileType) || "unknown"}, ${Math.round(Number(input.sizeKb) || 0)} KB)`,
   );
+}
+
+/**
+ * One tap from the item page for an item that ended unsold: relist it as it is, or as a free item
+ * (the two-unsold-runs prompt's "Make it free"). It joins the next Closing Night, tagged Second
+ * Chance. "Bundle it into a lot" goes through the edit form instead.
+ */
+export async function relistNow(formData: FormData): Promise<void> {
+  const viewer = await seller();
+  const listing = await findOwnListing(String(formData.get("listingId") ?? ""), viewer.id);
+  if (!listing) redirect("/account/listings");
+  const permissions = editPermissions({
+    status: listing.status,
+    bidCount: await bidCountFor(listing.id),
+  });
+  const schedule = listing.metroId ? await metroSchedule(listing.metroId) : undefined;
+  const nights = schedule ? closingNightOptions(schedule) : null;
+  if (!permissions.relist || !nights?.[0]) redirect(`/listings/${listing.id}`);
+  const free = formData.get("free") === "1";
+  await updateListing(listing.id, {
+    status: "live",
+    closingNightDate: nights[0].date,
+    unsoldRuns: 0,
+    needsDecision: false,
+    secondChance: true,
+    ...(free
+      ? { isFree: true, startPriceCents: marketplaceConfig.pricing.freeItemStartPriceCents }
+      : {}),
+  });
+  await syncAuctionForListing(listing.id);
+  redirect(`/listings/${listing.id}?relisted=1`);
+}
+
+/** The prompt's "End it": the listing stays ended (relist anytime) and the question goes away. */
+export async function endListing(formData: FormData): Promise<void> {
+  const viewer = await seller();
+  const listing = await findOwnListing(String(formData.get("listingId") ?? ""), viewer.id);
+  if (!listing) redirect("/account/listings");
+  if (listing.status === "ended") await updateListing(listing.id, { needsDecision: false });
+  redirect(`/listings/${listing.id}`);
 }

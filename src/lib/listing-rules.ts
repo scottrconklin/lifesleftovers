@@ -223,13 +223,16 @@ export function listingFormInput(formData: FormData) {
  * cancel only before bids. Removed and cancelled listings can't change.
  */
 export function editPermissions(listing: { status: ListingStatus; bidCount: number }) {
-  const open =
+  const active =
     listing.status === "draft" || listing.status === "live" || listing.status === "in_review";
+  // Ended unsold: the seller can edit it and relist it anytime (SPEC "When nothing sells").
+  const relistable = listing.status === "ended";
   const noBids = listing.bidCount === 0;
   return {
-    editEverything: open && noBids,
-    addPhotos: open,
-    addNotes: open && !noBids,
-    cancel: open && listing.status !== "draft" && noBids,
+    editEverything: (active || relistable) && noBids,
+    addPhotos: active || (relistable && noBids),
+    addNotes: active && !noBids,
+    cancel: active && listing.status !== "draft" && noBids,
+    relist: relistable && noBids,
   };
 }

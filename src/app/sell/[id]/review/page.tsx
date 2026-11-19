@@ -20,18 +20,18 @@ const STARTER_PICKUP_WINDOWS = [
   { dayOffset: 6, block: "morning" },
 ] as const satisfies ReviewValues["pickupWindows"];
 
-export default function ReviewPage({ params }: PageProps<"/sell/[id]/review">) {
+export default function ReviewPage({ params, searchParams }: PageProps<"/sell/[id]/review">) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 px-4 pt-3">
       <Suspense fallback={<CardSkeleton lines={6} />}>
-        <Review params={params} />
+        <Review params={params} searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">) {
-  const { id } = await params;
+async function Review({ params, searchParams }: PageProps<"/sell/[id]/review">) {
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const viewer = await requireStep("list", `/sell/${id}/review`);
   const listing = await findOwnListing(id, viewer.id);
   if (!listing) notFound();
@@ -55,14 +55,17 @@ async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">
   const custom =
     !listing.isFree && listing.startPriceCents > marketplaceConfig.pricing.defaultStartPriceCents;
 
+  const mode = listing.status === "draft" ? "post" : listing.status === "ended" ? "relist" : "edit";
+  const bundle = query.bundle === "1";
   const values: ReviewValues = {
     title: listing.title ?? "",
     category: listing.category ?? "",
     condition: listing.condition ?? "",
     description: listing.description ?? "",
     whyItsHere: listing.whyItsHere ?? "",
-    isLot: listing.isLot,
-    isFree: listing.isFree,
+    // "Bundle it into a lot" (after two unsold runs) opens this form with Lot switched on.
+    isLot: listing.isLot || (bundle && mode !== "post"),
+    isFree: bundle ? false : listing.isFree,
     lotItemCount: listing.lotItemCount,
     lotContents: listing.lotContents ?? "",
     sizeHint: listing.sizeHint,
@@ -80,11 +83,16 @@ async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">
     unsoldAction: listing.unsoldAction,
   };
 
-  const mode = listing.status === "draft" ? "post" : "edit";
   return (
     <>
       <SellHeader
-        title={mode === "post" ? "Review your listing" : "Edit your listing"}
+        title={
+          mode === "post"
+            ? "Review your listing"
+            : mode === "relist"
+              ? "Relist your item"
+              : "Edit your listing"
+        }
         step={mode === "post" ? "Step 2 of 2" : ""}
         closeHref={mode === "post" ? "/account/listings" : `/listings/${id}`}
       />

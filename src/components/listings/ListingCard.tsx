@@ -45,6 +45,7 @@ export function ListingCard({ listing, now }: { listing: NearbyListing; now: Dat
           <ListingBadges
             isFree={listing.isFree}
             isLot={listing.isLot}
+            secondChance={listing.secondChance}
             lotItemCount={listing.lotItemCount}
           />
           <span className="line-clamp-2 text-sm font-semibold">{listing.title}</span>

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { formatCents } from "@/lib/money";
 import { withNext } from "@/lib/next-path";
 import { bidStanding, hasEverBid, placeBid } from "@/server/auctions/service";
+import { toggleWant } from "@/server/auctions/want";
 import { toggleWatch } from "@/server/auctions/watch";
 import { currentDeviceHash, recordDevice } from "@/server/auth/device";
 import { getViewer } from "@/server/auth/session";
@@ -157,4 +158,34 @@ export async function myStanding(
 ): Promise<{ hasBid: boolean; leading: boolean; myMaxCents: number | null } | null> {
   const viewer = await getViewer();
   return viewer ? bidStanding(auctionId, viewer.id) : null;
+}
+
+export type WantActionResult =
+  | { status: "ok"; wanted: boolean; count: number }
+  | { status: "sign-in"; href: string }
+  | { status: "verify-phone"; href: string }
+  | { status: "error"; message: string };
+
+/**
+ * "I want it" on a free item: enter (or leave) the draw. A verified phone, like bidding, but no
+ * card: nothing is charged for a free item.
+ */
+export async function toggleWantAction(input: {
+  listingId: string;
+  auctionId: string;
+}): Promise<WantActionResult> {
+  const back = `/listings/${input.listingId}`;
+  const viewer = await getViewer();
+  if (!viewer) return { status: "sign-in", href: withNext("/sign-in", back) };
+  if (!viewer.phoneVerified)
+    return { status: "verify-phone", href: withNext("/verify-phone", back) };
+  const result = await toggleWant(input.auctionId, viewer.id);
+  if (result.ok) return { status: "ok", wanted: result.wanted, count: result.count };
+  const messages = {
+    "not-found": "We couldn't find that item.",
+    "not-free": "This one isn't free: place a bid instead.",
+    closed: "The draw for this one has closed.",
+    "own-item": "That's your own item.",
+  } as const;
+  return { status: "error", message: messages[result.reason] };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { CircleAlert, Trophy } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { myStanding } from "@/app/bid/actions";
 import { minimumBidCents } from "@/lib/bidding";
 import { useLiveAuction } from "@/lib/client/use-live-auction";
@@ -10,6 +11,9 @@ import { formatCents } from "@/lib/money";
 import type { AuctionUpdate } from "@/lib/realtime";
 import { BidSheet, type BidSheetViewer } from "./BidSheet";
 import { Countdown } from "./Countdown";
+
+/** How long after the end to reload if the "closed" broadcast hasn't arrived. */
+const CLOSE_RECHECK_MS = 20_000;
 
 export type Standing = { hasBid: boolean; leading: boolean; myMaxCents: number | null };
 
@@ -57,11 +61,17 @@ export function AuctionPanel({
   const [, refreshStanding] = useTransition();
   // Re-check your own standing on every update (it may have flipped to "Outbid!"). Signed-in
   // members only; the callback is captured once, so it must not depend on render-time state.
-  const live = useLiveAuction(initial, () => {
-    if (viewer.kind === "member") {
-      refreshStanding(async () => setStanding(await myStanding(initial.auctionId)));
-    }
-  });
+  const router = useRouter();
+  const live = useLiveAuction(
+    initial,
+    () => {
+      if (viewer.kind === "member") {
+        refreshStanding(async () => setStanding(await myStanding(initial.auctionId)));
+      }
+    },
+    // Closed: reload to show how it ended (sold, or relisted as a Second Chance).
+    () => router.refresh(),
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
   const [localLive, setLocalLive] = useState<AuctionUpdate | null>(null);
   const state = localLive && localLive.bidCount > live.bidCount ? localLive : live;
@@ -78,6 +88,13 @@ export function AuctionPanel({
   const now = useServerNow();
   const ended = now !== null && now.getTime() >= new Date(state.endsAt).getTime();
   const noBids = state.bidCount === 0;
+
+  // Missed the broadcast (asleep tab, flaky network)? Check again a little after the end.
+  useEffect(() => {
+    if (!ended || !open) return;
+    const timer = setTimeout(() => router.refresh(), CLOSE_RECHECK_MS);
+    return () => clearTimeout(timer);
+  }, [ended, open, router]);
 
   return (
     <>

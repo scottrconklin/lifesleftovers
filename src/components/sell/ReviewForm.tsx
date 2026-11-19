@@ -89,7 +89,7 @@ export function ReviewForm({
   pickupWindowsHint,
 }: {
   listingId: string;
-  mode: "post" | "edit";
+  mode: "post" | "edit" | "relist";
   canRemovePhotos: boolean;
   /** Says where preselected windows came from ("Same times as your last listing…"). */
   pickupWindowsHint: string | null;
@@ -634,7 +634,13 @@ export function ReviewForm({
           disabled={pending}
           aria-busy={pending}
         >
-          {pending ? "Posting…" : mode === "post" ? "Post it" : "Save changes"}
+          {pending
+            ? "Posting…"
+            : mode === "post"
+              ? "Post it"
+              : mode === "relist"
+                ? "Relist it"
+                : "Save changes"}
         </Button>
       </div>
     </form>

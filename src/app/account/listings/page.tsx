@@ -31,6 +31,10 @@ function statusLine(l: SellerListing): string {
       return "Cancelled";
     case "removed":
       return "Removed";
+    case "sold":
+      return "Sold";
+    case "ended":
+      return l.needsDecision ? "Unsold twice: your call" : "Ended · relist anytime";
     case "live":
       if (l.metroStatus !== "open") return `Waiting for ${l.metroShortName ?? "your city"} to open`;
       return l.closingNightDate ? `Live · Ends ${formatShortDate(l.closingNightDate)}` : "Live";
