@@ -5,13 +5,22 @@
  * Grows with each milestone (SPEC "Make auctions testable"):
  *   M1  20 fake users with verified phones (sign in as seller01@seed.lifesleftovers.test …)
  *   M2  zip centroids, metros and areas (via db:geo), Houston open, fake waitlist signups
- *   M3  ~200 listings with photos, including lots and free items
+ *   M3  200 live listings with placeholder photos, including lots and free items
  *   M5  an upcoming Closing Night
  */
 import postgres from "postgres";
 import { loadGeography } from "./geo";
 import { assertLocalDatabaseUrl, loadLocalEnv } from "./lib/local-db";
+import { upcomingClosingNights } from "@/lib/closing-night";
 import { SEED_EMAIL_DOMAIN, SEED_USERS, SEED_WAITLIST } from "./lib/seed-data";
+import {
+  CATALOG,
+  PHOTO_COLORS,
+  SEED_LISTING_COUNT,
+  seedListingId,
+  seedPhotoId,
+} from "./lib/seed-listings";
+import { placeholderPhoto, storageClient } from "./lib/seed-photos";
 
 type SeedStep = { name: string; run: (tx: postgres.TransactionSql) => Promise<void> };
 
@@ -52,6 +61,66 @@ const steps: SeedStep[] = [
           on conflict (id) do update set display_name = excluded.display_name,
             home_zip = excluded.home_zip, phone_e164 = excluded.phone_e164,
             phone_verified_at = coalesce(public.users.phone_verified_at, excluded.phone_verified_at)`;
+      }
+    },
+  },
+  {
+    name: `${SEED_LISTING_COUNT} live listings with photos (next Closing Night)`,
+    async run(tx) {
+      const [houston] = await tx<
+        { id: string; time_zone: string; closing_weekday: number; closing_starts_at: string }[]
+      >`select id, time_zone, closing_weekday, closing_starts_at::text from public.metros
+        where slug = 'houston'`;
+      if (!houston) throw new Error("Houston metro missing; geography didn't load");
+      const [night] = upcomingClosingNights(new Date(), {
+        timeZone: houston.time_zone,
+        closingWeekday: houston.closing_weekday,
+        closingStartsAt: houston.closing_starts_at,
+      });
+      const storage = storageClient();
+      for (let i = 0; i < SEED_LISTING_COUNT; i++) {
+        const base = CATALOG[i % CATALOG.length]!;
+        const seller = SEED_USERS[i % SEED_USERS.length]!;
+        const id = seedListingId(i);
+        const isFree = Boolean(base.free);
+        const start = isFree ? 0 : (base.startDollars ?? 1) * 100;
+        await tx`
+          insert into public.listings (id, seller_id, status, title, description, why_its_here,
+            category, condition, is_lot, is_free, lot_item_count, lot_contents, size_hint,
+            start_price_cents, pickup_zip, metro_id, pickup_windows, closing_night_date,
+            moderation, posted_at)
+          values (${id}, ${seller.id}, 'live', ${base.title}, ${"Seed listing for local testing."},
+            ${base.why}, ${base.category}, ${base.condition}, ${Boolean(base.lot)}, ${isFree},
+            ${base.lot?.count ?? null}, ${base.lot?.contents ?? null},
+            ${base.lot?.size ?? base.free?.size ?? null}, ${start}, ${seller.homeZip}, ${houston.id},
+            ${JSON.stringify([
+              { dayOffset: 1, block: "evening" },
+              { dayOffset: 6, block: "morning" },
+            ])}::text::jsonb,
+            ${night!.date}, ${JSON.stringify({ verdict: "ok", reasons: [], by: "seed" })}::text::jsonb,
+            now() - ${`${i} minutes`}::interval)
+          on conflict (id) do update set closing_night_date = excluded.closing_night_date,
+            status = 'live'`;
+        const photoCount = base.lot ? 2 : 1;
+        for (let n = 0; n < photoCount; n++) {
+          const photoId = seedPhotoId(i, n);
+          const key = `p/${photoId}.jpg`;
+          if (!(await storage.exists(key))) {
+            const color = PHOTO_COLORS[(i + n) % PHOTO_COLORS.length]!;
+            await storage.put(
+              key,
+              await placeholderPhoto(
+                base.title,
+                color,
+                n === 0 ? "Seed photo" : "Everything included",
+              ),
+            );
+          }
+          await tx`
+            insert into public.listing_photos (id, listing_id, kind, position, storage_key, width, height, bytes)
+            values (${photoId}, ${id}, 'photo', ${n}, ${key}, 800, 800, 0)
+            on conflict (id) do nothing`;
+        }
       }
     },
   },
