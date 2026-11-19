@@ -37,11 +37,11 @@ Spec: "Who has to provide what, and when", "How the safety features work"
 
 Spec: "Location: metros, radius and areas", "Cold start: never an empty room"
 
-- [ ] Metros table with status (Waitlist, Seeding, Open), center, time zone, Closing Night schedule.
-- [ ] Zip-code centroid table (US Census ZCTA) loaded; Houston zips mapped to the starter areas.
-- [ ] PostGIS distance queries; distance rounded to the mile from the zip centroid.
-- [ ] Default radius 15 mi, slider 5–50; auto-widen when fewer than 12 results, with a visible message.
-- [ ] A user outside an open metro sees the "city not open yet" screen (mockup: `NotOpen.dc.html`) with waitlist count and signup.
+- [x] Metros table with status (Waitlist, Seeding, Open), center, time zone, Closing Night schedule.
+- [x] Zip-code centroid table (US Census ZCTA) loaded; Houston zips mapped to the starter areas.
+- [x] PostGIS distance queries; distance rounded to the mile from the zip centroid.
+- [x] Default radius 15 mi, slider 5–50; auto-widen when fewer than 12 results, with a visible message. (Logic and message tested against real distances; the widened message gets its on-screen test once M3 seeds listings.)
+- [x] A user outside an open metro sees the "city not open yet" screen (mockup: `NotOpen.dc.html`) with waitlist count and signup.
 
 ## M3 — Listings and images
 
@@ -58,6 +58,7 @@ Spec: "Core user flows" (listing), "Image management", "Lots and free items", "S
 - [ ] AI moderation check on new listings; flagged ones go to the admin queue instead of going live.
 - [ ] Edit rules: anything before the first bid; only add photos or notes after; cancel only before bids.
 - [ ] Seed script creates ~200 realistic listings including lots and free items.
+- [ ] Carried from M2: radius search over live listings, with an e2e test that shows the widened message ("Showing 23 auctions within 30 miles").
 
 ## M4 — Auctions and bidding
 

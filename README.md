@@ -29,13 +29,17 @@ The Supabase CLI and Inngest CLI are dev dependencies, so there's nothing else t
 ```sh
 pnpm db:start      # Supabase (Postgres+PostGIS, Auth, Realtime, Mailpit) + RustFS (local R2)
 pnpm db:migrate    # apply migrations
-pnpm db:seed       # load local data (grows each milestone)
+pnpm db:seed       # load local data: geography, Houston open, fake users (grows each milestone)
 pnpm dev           # http://localhost:3100
 pnpm jobs:dev      # in another terminal: Inngest dev server
 pnpm stripe:listen # in another terminal, when working on payments
 ```
 
 `db:start` also writes the local Supabase keys into `.env.local` (the secret key is the CLI's fixed local key, kept out of committed files so GitHub's secret scanning stays quiet).
+
+**Trying locations locally:** on the home page, enter `77494` (Katy, Houston: open locally), `78701` (Austin: waitlist) or `10001` (outside every metro). Seeded members `seller01@seed.lifesleftovers.test` … `seller20@…` have verified phones and home zips across Houston; sign in as them through Mailpit.
+
+**Geography in other environments:** `pnpm db:geo` loads the zip centroids (`data/geo/`) and creates any starter metros and areas that don't exist (`src/server/geo/starter-metros.ts`), then maps every zip. It's safe to run anywhere and never changes a metro that already exists. Houston starts as "seeding" (not public); the local seed opens it.
 
 **Signing in locally:** go to http://localhost:3100/sign-in, enter any email, and open the sign-in email in Mailpit (http://localhost:54324). The phone check accepts the code `000000` and sends no text (`ALLOW_DEV_OTP=1`, refused on the production deployment).
 
