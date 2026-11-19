@@ -22,8 +22,8 @@ function client() {
   });
 }
 
-function objectUrl(key: string): string {
-  const endpoint = requireEnv("S3_ENDPOINT").replace(/\/$/, "");
+function objectUrl(key: string, endpointOverride?: string): string {
+  const endpoint = (endpointOverride ?? requireEnv("S3_ENDPOINT")).replace(/\/$/, "");
   const bucket = requireEnv("S3_BUCKET");
   const path = key.split("/").map(encodeURIComponent).join("/");
   if (serverEnv().S3_FORCE_PATH_STYLE) return `${endpoint}/${bucket}/${path}`;
@@ -33,7 +33,8 @@ function objectUrl(key: string): string {
 
 /** A URL the browser can PUT one JPEG to for the next few minutes. */
 export async function presignUpload(key: string, contentType: string): Promise<string> {
-  const url = new URL(objectUrl(key));
+  // Signed for the address the browser will use (a tunnel in phone mode); the signature covers it.
+  const url = new URL(objectUrl(key, serverEnv().S3_PUBLIC_ENDPOINT));
   url.searchParams.set("X-Amz-Expires", String(PRESIGN_SECONDS));
   const signed = await client().sign(url.toString(), {
     method: "PUT",

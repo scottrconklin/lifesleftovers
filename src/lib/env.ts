@@ -27,6 +27,8 @@ const serverShape = z.object({
 
   // Images (Cloudflare R2; RustFS locally)
   S3_ENDPOINT: z.url().optional(),
+  // Where browsers send presigned uploads, if not S3_ENDPOINT (pnpm dev:phone sets it).
+  S3_PUBLIC_ENDPOINT: z.url().optional(),
   S3_REGION: z.string().default("auto"),
   S3_ACCESS_KEY_ID: z.string().min(1).optional(),
   S3_SECRET_ACCESS_KEY: z.string().min(1).optional(),
