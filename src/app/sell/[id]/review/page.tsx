@@ -9,10 +9,16 @@ import { editPermissions } from "@/lib/listing-rules";
 import { requireStep } from "@/server/auth/session";
 import { findZip } from "@/server/geo/places";
 import { closingNightOptions, metroSchedule } from "@/server/listings/metro-schedule";
-import { bidCountFor, findOwnListing, listPhotos } from "@/server/listings/repo";
+import { bidCountFor, findOwnListing, lastPickupWindows, listPhotos } from "@/server/listings/repo";
 import { photoView } from "@/server/listings/views";
 
 export const metadata: Metadata = { title: "Review your listing" };
+
+/** A first listing's starting pickup windows: a weekday evening and a weekend morning. */
+const STARTER_PICKUP_WINDOWS = [
+  { dayOffset: 1, block: "evening" },
+  { dayOffset: 6, block: "morning" },
+] as const satisfies ReviewValues["pickupWindows"];
 
 export default function ReviewPage({ params }: PageProps<"/sell/[id]/review">) {
   return (
@@ -36,6 +42,14 @@ async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">
   if (!allPhotos.some((p) => p.kind === "photo")) redirect(`/sell/${id}`);
 
   const place = listing.pickupZip ? await findZip(listing.pickupZip) : null;
+  const previousWindows =
+    listing.pickupWindows.length > 0 ? null : await lastPickupWindows(viewer.id);
+  const windowsHint =
+    listing.pickupWindows.length > 0
+      ? null
+      : previousWindows
+        ? "Same times as your last listing. Tap to change."
+        : "We started you with two common times. Tap to change.";
   const schedule = place?.metro ? await metroSchedule(place.metro.id) : undefined;
   const closingNights = schedule ? closingNightOptions(schedule) : null;
   const custom =
@@ -57,13 +71,11 @@ async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">
     isBrandName: listing.isBrandName,
     authenticityConfirmed: Boolean(listing.authenticityConfirmedAt),
     pickupZip: listing.pickupZip ?? "",
+    // This listing's own windows, else what the seller chose last time, else two common times.
     pickupWindows:
       listing.pickupWindows.length > 0
         ? listing.pickupWindows
-        : [
-            { dayOffset: 1, block: "evening" },
-            { dayOffset: 6, block: "morning" },
-          ],
+        : (previousWindows ?? STARTER_PICKUP_WINDOWS),
     closingNightDate: listing.closingNightDate,
     unsoldAction: listing.unsoldAction,
   };
@@ -94,6 +106,7 @@ async function Review({ params }: Pick<PageProps<"/sell/[id]/review">, "params">
         closingWeekday={schedule?.closingWeekday ?? marketplaceConfig.closingNight.defaultWeekday}
         turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
         canRemovePhotos={permissions.editEverything}
+        pickupWindowsHint={windowsHint}
       />
     </>
   );

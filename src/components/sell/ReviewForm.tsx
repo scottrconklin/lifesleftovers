@@ -86,10 +86,13 @@ export function ReviewForm({
   closingWeekday,
   turnstileSiteKey,
   canRemovePhotos,
+  pickupWindowsHint,
 }: {
   listingId: string;
   mode: "post" | "edit";
   canRemovePhotos: boolean;
+  /** Says where preselected windows came from ("Same times as your last listing…"). */
+  pickupWindowsHint: string | null;
   values: ReviewValues;
   aiFilled: boolean;
   suggestedStartCents: number | null;
@@ -556,6 +559,9 @@ export function ReviewForm({
           {hours(blocks.afternoon.startHour)}–{hours(blocks.afternoon.endHour)}, evening{" "}
           {hours(blocks.evening.startHour)}–{hours(blocks.evening.endHour)}.
         </p>
+        {pickupWindowsHint ? (
+          <p className="mt-1 text-xs font-semibold text-brand-navy">{pickupWindowsHint}</p>
+        ) : null}
         <div className="mt-2 grid grid-cols-[3rem_repeat(3,minmax(0,1fr))] items-center gap-1.5 text-sm">
           <span />
           {PICKUP_BLOCKS.map((b) => (

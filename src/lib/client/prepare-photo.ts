@@ -36,7 +36,10 @@ export async function preparePhoto(file: File): Promise<Blob> {
   try {
     bitmap = await decode(file);
   } catch {
-    throw new PhotoPrepError("We couldn't read that photo. Try another one.");
+    // Often a photo that lives only in Google Photos' cloud and hasn't downloaded to the phone.
+    throw new PhotoPrepError(
+      "We couldn't open that photo. If it's in Google Photos, open it there once so it downloads, then try again.",
+    );
   }
   const { width, height } = scaledSize(bitmap.width, bitmap.height);
   const canvas = document.createElement("canvas");

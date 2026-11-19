@@ -5,6 +5,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react"
 import {
   confirmPhotoUpload,
   deletePhoto,
+  reportPhotoProblem,
   requestPhotoUpload,
   setCoverPhoto,
 } from "@/app/sell/actions";
@@ -89,6 +90,7 @@ export function PhotoUploader({
 
   /** Upload one prepared JPEG; it leaves the phone's queue only once the server has it. */
   async function upload(jpeg: Blob, queueId: string, tempId: string, preview: string) {
+    let step: "ticket" | "upload" | "save" = "ticket";
     try {
       const ticket = await requestPhotoUpload({
         listingId: listingId.current,
@@ -101,12 +103,14 @@ export function PhotoUploader({
         onListingCreated?.(ticket.listingId);
         await assignQueuedPhotos(ticket.listingId);
       }
+      step = "upload";
       const put = await fetch(ticket.uploadUrl, {
         method: "PUT",
         body: jpeg,
         headers: { "Content-Type": "image/jpeg" },
       });
       if (!put.ok) throw new PhotoPrepError("The upload didn't go through. Try again.");
+      step = "save";
       const saved = await confirmPhotoUpload({
         listingId: ticket.listingId,
         uploadKey: ticket.uploadKey,
@@ -121,6 +125,12 @@ export function PhotoUploader({
     } catch (e) {
       // The page is still here and says so; the seller can take it again.
       await dequeuePhoto(queueId);
+      void reportPhotoProblem({
+        step,
+        error: e instanceof Error ? `${e.name}: ${e.message}` : "unknown",
+        fileType: jpeg.type,
+        sizeKb: jpeg.size / 1024,
+      });
       failPending(
         tempId,
         e instanceof PhotoPrepError ? e.message : "The upload didn't go through. Try again.",
@@ -142,6 +152,12 @@ export function PhotoUploader({
       try {
         jpeg = await preparePhoto(file);
       } catch (e) {
+        void reportPhotoProblem({
+          step: "read",
+          error: e instanceof Error ? `${e.name}: ${e.message}` : "unknown",
+          fileType: file.type,
+          sizeKb: file.size / 1024,
+        });
         failPending(
           tempId,
           e instanceof PhotoPrepError ? e.message : "We couldn't read that photo.",

@@ -424,3 +424,23 @@ export async function addSellerNote(_previous: NoteState, formData: FormData): P
   refresh();
   return { status: "saved" };
 }
+
+/**
+ * A phone reports a photo that failed, so the server log says which step broke: reading it on the
+ * phone, getting an upload URL, sending it, or saving it. Type, size and error name only: never
+ * the photo, its name, or anything personal.
+ */
+export async function reportPhotoProblem(input: {
+  step: "read" | "ticket" | "upload" | "save";
+  error: string;
+  fileType: string;
+  sizeKb: number;
+}): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer) return;
+  const clean = (s: string) => s.replace(/[^\w ./:+-]/g, "").slice(0, 80);
+  console.warn(
+    `Photo problem at "${clean(input.step)}": ${clean(input.error) || "unknown"} ` +
+      `(type ${clean(input.fileType) || "unknown"}, ${Math.round(Number(input.sizeKb) || 0)} KB)`,
+  );
+}

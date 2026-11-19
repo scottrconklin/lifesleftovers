@@ -279,3 +279,16 @@ export async function sellerSummary(
     .limit(1);
   return { displayName: row?.displayName ?? null, phoneVerified: Boolean(row?.phoneVerifiedAt) };
 }
+
+/** The pickup windows on the seller's most recently posted listing (to start the next one). */
+export async function lastPickupWindows(
+  sellerId: string,
+): Promise<ListingRow["pickupWindows"] | null> {
+  const [row] = await getDb()
+    .select({ windows: listings.pickupWindows })
+    .from(listings)
+    .where(and(eq(listings.sellerId, sellerId), sql`${listings.postedAt} is not null`))
+    .orderBy(desc(listings.postedAt))
+    .limit(1);
+  return row && row.windows.length > 0 ? row.windows : null;
+}

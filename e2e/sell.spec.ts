@@ -96,6 +96,33 @@ test.describe("selling", () => {
     await expect(page.getByLabel(/Why it's here/)).toHaveValue("Don't use it anymore.");
   });
 
+  test("pickup windows start from two common times, then from your last listing", async ({
+    page,
+  }) => {
+    await signInVerifiedSeller(page);
+    await page.goto("/sell");
+    await addPhotos(page, "photo", 1);
+    await continueToReview(page);
+    await expect(
+      page.getByText("We started you with two common times. Tap to change."),
+    ).toBeVisible();
+    await expect(page.getByLabel("Mon evening")).toBeChecked();
+    await expect(page.getByLabel("Sat morning")).toBeChecked();
+    await page.getByLabel("Mon evening").setChecked(false, { force: true });
+    await page.getByLabel("Sat morning").setChecked(false, { force: true });
+    await page.getByLabel("Tue evening").setChecked(true, { force: true });
+    await page.getByLabel("Pickup zip").fill("77494");
+    await postIt(page);
+    await expect(page.getByText("Posted! It's live now.")).toBeVisible();
+
+    await page.goto("/sell");
+    await addPhotos(page, "photo", 1);
+    await continueToReview(page);
+    await expect(page.getByText("Same times as your last listing. Tap to change.")).toBeVisible();
+    await expect(page.getByLabel("Tue evening")).toBeChecked();
+    await expect(page.getByLabel("Mon evening")).not.toBeChecked();
+  });
+
   test("a validation error keeps what the seller typed", async ({ page }) => {
     await signInVerifiedSeller(page);
     await page.goto("/sell");
