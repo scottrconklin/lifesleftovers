@@ -124,3 +124,13 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* "Extended +2:00": a brief highlight when a late bid pushes the end out (SPEC countdown rules). */
+@keyframes ll-flash {
+  0% {
+    background-color: var(--color-brand-mustard);
+  }
+  100% {
+    background-color: transparent;
+  }
+}

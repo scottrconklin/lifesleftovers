@@ -66,6 +66,7 @@ async function HomeContent() {
     location.radiusMiles,
   );
   const shown = nearby.filter((n) => n.miles <= choice.radiusMiles);
+  const now = new Date();
   return (
     <HomeShell>
       <BrowsingNear location={location} choice={choice} />
@@ -75,7 +76,7 @@ async function HomeContent() {
           className="grid w-full grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
         >
           {shown.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <ListingCard key={listing.id} listing={listing} now={now} />
           ))}
         </ul>
       ) : null}

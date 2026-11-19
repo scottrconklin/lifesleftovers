@@ -28,7 +28,12 @@ async function DeleteConfirm({ searchParams }: Pick<PageProps<"/account/delete">
   const { error } = await searchParams;
   return (
     <form action={deleteAccount} className="flex flex-col gap-4">
-      {error ? (
+      {error === "active" ? (
+        <FormMessage tone="error">
+          You&apos;re leading an open auction or selling one that has bids. You can delete your
+          account once those end.
+        </FormMessage>
+      ) : error ? (
         <FormMessage tone="error">
           We couldn&apos;t delete your account just now. Please try again.
         </FormMessage>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { distanceLabel } from "@/lib/distance";
 import { formatCents } from "@/lib/money";
+import { countdown } from "@/lib/countdown";
 import { formatShortDate } from "@/lib/time";
 import { listingPhotoUrl } from "@/server/images/photo-urls";
 import type { NearbyListing } from "@/server/listings/repo";
@@ -10,7 +11,19 @@ import { ListingBadges } from "./Badges";
  * A wall card: square, center-cropped photo; "$7 · 5 bids"; "8 mi · Katy"; up to two badges.
  * The full card design (countdowns, Closing tonight badge) lands with the wall in Milestone 8.
  */
-export function ListingCard({ listing }: { listing: NearbyListing }) {
+export function ListingCard({ listing, now }: { listing: NearbyListing; now: Date }) {
+  const ends = listing.endsAt
+    ? countdown({
+        now,
+        endsAt: listing.endsAt,
+        timeZone: listing.timeZone,
+        bidCount: listing.bidCount,
+        currentPriceCents: listing.currentPriceCents,
+        relists: true,
+      }).text
+    : listing.closingNightDate
+      ? `Ends ${formatShortDate(listing.closingNightDate)}`
+      : null;
   return (
     <li>
       <Link
@@ -36,12 +49,16 @@ export function ListingCard({ listing }: { listing: NearbyListing }) {
           />
           <span className="line-clamp-2 text-sm font-semibold">{listing.title}</span>
           <span className="text-sm">
-            <strong>{listing.isFree ? "Free" : formatCents(listing.startPriceCents)}</strong> · 0
-            bids
+            <strong>
+              {listing.isFree && listing.bidCount === 0
+                ? "Free"
+                : formatCents(listing.currentPriceCents)}
+            </strong>{" "}
+            · {listing.bidCount} {listing.bidCount === 1 ? "bid" : "bids"}
           </span>
           <span className="text-xs text-brand-ink-muted">
             {distanceLabel(listing.miles, listing.areaName)}
-            {listing.closingNightDate ? ` · Ends ${formatShortDate(listing.closingNightDate)}` : ""}
+            {ends ? ` · ${ends}` : ""}
           </span>
         </span>
       </Link>

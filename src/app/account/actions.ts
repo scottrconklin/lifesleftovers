@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { profileFormSchema } from "@/lib/profile";
 import { updateProfile } from "@/server/accounts/profiles";
+import { hasActiveAuctions } from "@/server/auctions/service";
 import { getSessionUser } from "@/server/auth/session";
 import { zipExists } from "@/server/geo/places";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/server/auth/supabase";
@@ -56,6 +57,9 @@ export async function signOut(): Promise<void> {
 export async function deleteAccount(): Promise<void> {
   const user = await getSessionUser();
   if (!user) redirect("/sign-in?next=%2Faccount%2Fdelete");
+
+  // Not while money or items are in play: winning an open auction, or selling one with bids.
+  if (await hasActiveAuctions(user.id)) redirect("/account/delete?error=active");
 
   const admin = createSupabaseAdminClient();
   const { error } = await admin.auth.admin.deleteUser(user.id);

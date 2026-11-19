@@ -39,9 +39,24 @@ function loadTurnstile(): Promise<TurnstileApi> {
  * Server Action forwards to Supabase Auth, which verifies it. Tokens are single-use, so remount
  * this (change its `key`) after each submission.
  */
-export function Turnstile({ siteKey }: { siteKey: string }) {
+export function Turnstile({
+  siteKey,
+  onToken,
+}: {
+  siteKey: string;
+  /** For forms that aren't <form>s (the bid sheet); the hidden input is filled either way. */
+  onToken?: (token: string) => void;
+}) {
   const container = useRef<HTMLDivElement>(null);
-  const [token, setToken] = useState("");
+  const [token, setTokenState] = useState("");
+  const onTokenRef = useRef(onToken);
+  useEffect(() => {
+    onTokenRef.current = onToken;
+  });
+  const setToken = (t: string) => {
+    setTokenState(t);
+    onTokenRef.current?.(t);
+  };
 
   useEffect(() => {
     let widgetId: string | undefined;
