@@ -5,10 +5,16 @@ import { requireEnv } from "@/lib/env";
 import * as schema from "./schema";
 
 /**
- * One postgres.js pool per server instance (reused across hot reloads in dev).
- * `prepare: false` keeps it compatible with Supabase's transaction-mode pooler in production.
+ * Two pools per server instance (reused across hot reloads in dev):
+ * - getDb(): Drizzle. Drizzle rewires its client's date parsers and serializers (timestamps come
+ *   back as strings, Date parameters are refused), so it gets a pool of its own…
+ * - getSql(): plain postgres.js for raw SQL (bidding, PostGIS), where timestamps are Dates.
+ * `prepare: false` keeps both compatible with Supabase's transaction-mode pooler in production.
  */
-const globalForDb = globalThis as unknown as { pgClient?: postgres.Sql };
+const globalForDb = globalThis as unknown as {
+  pgClient?: postgres.Sql;
+  drizzleClient?: postgres.Sql;
+};
 
 function createClient(): postgres.Sql {
   return postgres(requireEnv("DATABASE_URL"), { prepare: false, max: 10 });
@@ -20,14 +26,16 @@ export function getSql(): postgres.Sql {
 }
 
 export function getDb() {
-  return drizzle(getSql(), { schema, casing: "snake_case" });
+  globalForDb.drizzleClient ??= createClient();
+  return drizzle(globalForDb.drizzleClient, { schema, casing: "snake_case" });
 }
 
 export type Db = ReturnType<typeof getDb>;
 
-/** Close the pool and forget it (tests and scripts), so a later getSql() opens a fresh one. */
+/** Close both pools and forget them (tests and scripts), so later calls open fresh ones. */
 export async function closeDb(): Promise<void> {
-  const client = globalForDb.pgClient;
+  const clients = [globalForDb.pgClient, globalForDb.drizzleClient];
   globalForDb.pgClient = undefined;
-  await client?.end();
+  globalForDb.drizzleClient = undefined;
+  await Promise.all(clients.map((c) => c?.end()));
 }

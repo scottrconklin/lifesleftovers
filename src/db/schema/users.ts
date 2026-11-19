@@ -21,6 +21,8 @@ export const users = pgTable(
     /** Verified phone in E.164 (+17135550123). One account per number. Never log it. */
     phoneE164: text("phone_e164").unique("users_phone_e164_unique"),
     phoneVerifiedAt: timestamp({ withTimezone: true }),
+    /** Stripe Customer ("cus_…"), created when the member first saves a card. */
+    stripeCustomerId: text().unique(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

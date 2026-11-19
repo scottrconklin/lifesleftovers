@@ -47,6 +47,12 @@ export const marketplaceConfig = {
     minDaysBeforeClosingNight: 3,
   },
 
+  bids: {
+    /** Accepted bids per person, across all auctions (SPEC "Rate-limit … bidding"). */
+    maxPerMinute: 6,
+    maxPerHour: 60,
+  },
+
   softClose: {
     /** A bid inside this window before ends_at extends the auction… */
     windowSeconds: 120,

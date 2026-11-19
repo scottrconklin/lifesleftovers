@@ -77,3 +77,11 @@ export function formatShortDate(date: string): string {
     timeZone: "UTC",
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }
+
+/** "Sunday" for a calendar date. */
+export function weekdayName(date: string): string {
+  const [y, m, d] = date.split("-").map(Number) as [number, number, number];
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(
+    new Date(Date.UTC(y, m - 1, d)),
+  );
+}
