@@ -1,6 +1,6 @@
 import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
-import { betaZodOutputFormat } from "@anthropic-ai/sdk/helpers/beta/zod";
+import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { marketplaceConfig } from "@/config/marketplace";
 import { isProductionDeployment, serverEnv, type ServerEnv } from "@/lib/env";
@@ -61,8 +61,11 @@ function imageBlocks(photos: ListingPhotoInput[]) {
   }));
 }
 
-export function createClaudeListingAi(apiKey: string): ListingAi {
-  const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 });
+export function createClaudeListingAi(
+  apiKey: string,
+  options: { fetch?: typeof fetch } = {},
+): ListingAi {
+  const client = new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000, fetch: options.fetch });
   const { model, effort } = marketplaceConfig.ai;
 
   return {
@@ -71,12 +74,10 @@ export function createClaudeListingAi(apiKey: string): ListingAi {
     async suggest(photos) {
       if (photos.length === 0) return null;
       const categories = CATEGORIES.map((c) => `${c.slug} (${c.label})`).join(", ");
-      const response = await client.beta.messages.parse({
+      const response = await client.messages.parse({
         model,
-        max_tokens: 2000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        output_config: { effort, format: betaZodOutputFormat(suggestionSchema) },
+        max_tokens: 2000, // room for adaptive thinking plus the JSON
+        output_config: { effort, format: zodOutputFormat(suggestionSchema) },
         system: SUGGEST_SYSTEM,
         messages: [
           {
@@ -96,25 +97,34 @@ export function createClaudeListingAi(apiKey: string): ListingAi {
     },
 
     async moderate({ text, photos }) {
-      const response = await client.beta.messages.parse({
-        model,
-        max_tokens: 1000,
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        output_config: { effort, format: betaZodOutputFormat(moderationSchema) },
-        system: MODERATE_SYSTEM,
-        messages: [
-          {
-            role: "user",
-            content: [...imageBlocks(photos), { type: "text", text: `Listing text:\n${text}` }],
-          },
-        ],
-      });
-      // A declined review goes to a person, never straight to live.
-      if (response.stop_reason === "refusal" || !response.parsed_output) {
-        return { verdict: "flagged", reasons: ["Needs a manual review"] };
+      // Any failure (refusal, unparseable reply, API error) goes to a person, never straight live.
+      const manual: ModerationVerdict = { verdict: "flagged", reasons: ["Needs a manual review"] };
+      try {
+        const response = await client.messages.parse({
+          model,
+          max_tokens: 1000,
+          output_config: { effort, format: zodOutputFormat(moderationSchema) },
+          system: MODERATE_SYSTEM,
+          messages: [
+            {
+              role: "user",
+              content: [
+                ...imageBlocks(photos),
+                {
+                  type: "text",
+                  text: `Listing text:
+${text}`,
+                },
+              ],
+            },
+          ],
+        });
+        if (response.stop_reason === "refusal" || !response.parsed_output) return manual;
+        return response.parsed_output;
+      } catch (error) {
+        console.warn(`AI moderation failed: ${error instanceof Error ? error.name : "unknown"}`);
+        return manual;
       }
-      return response.parsed_output;
     },
   };
 }

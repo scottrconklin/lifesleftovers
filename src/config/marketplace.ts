@@ -153,10 +153,9 @@ export const marketplaceConfig = {
   ai: {
     /**
      * Listing help and moderation (SPEC "Listing help", "Moderation"). Runs only when
-     * ANTHROPIC_API_KEY is set. One model for both; switching to "claude-haiku-5-5" cuts the cost
-     * per listing by roughly 40x (Decisions log, Nov 20).
+     * ANTHROPIC_API_KEY is set. Claude Haiku 5.5: about 0.1¢ per listing (Decisions log, Nov 20).
      */
-    model: "claude-opus-5-5",
+    model: "claude-haiku-5-5",
     /** Low effort: these are short extraction and classification calls. */
     effort: "low",
     /** Photos sent for a suggestion, each resized to this long edge. */
