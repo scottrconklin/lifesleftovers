@@ -1,6 +1,12 @@
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
-import { addPhotos, continueToReview, postIt, signInVerifiedSeller } from "./helpers/selling";
+import {
+  addPhotos,
+  continueToReview,
+  phonePhoto,
+  postIt,
+  signInVerifiedSeller,
+} from "./helpers/selling";
 
 // Milestone 3: listings and images. Needs the local stack (Supabase, RustFS) and `pnpm db:seed`;
 // the e2e server runs with AI_FAKE=1, so "AI" answers are canned and free.
@@ -43,6 +49,51 @@ test.describe("selling", () => {
     const meta = await sharp(stored).metadata();
     expect(meta.exif).toBeUndefined();
     expect(stored.includes(Buffer.from("iPhone"))).toBe(false);
+  });
+
+  test("a photo the page lost mid-upload finishes when the page comes back", async ({ page }) => {
+    await signInVerifiedSeller(page);
+    await page.goto("/sell");
+    await expect(page.getByTestId("photo-input-photo")).toBeEnabled();
+    // What the phone holds if Android closed Chrome mid-upload: a prepared photo, no draft yet.
+    const { buffer } = await phonePhoto();
+    await page.evaluate(async (bytes) => {
+      const blob = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
+      await new Promise<void>((resolve, reject) => {
+        const open = indexedDB.open("ll-photo-queue", 1);
+        open.onupgradeneeded = () => open.result.createObjectStore("photos", { keyPath: "id" });
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const tx = open.result.transaction("photos", "readwrite");
+          tx.objectStore("photos").put({
+            id: "lost-1",
+            listingId: null,
+            kind: "photo",
+            blob,
+            queuedAt: Date.now(),
+          });
+          tx.oncomplete = () => resolve();
+        };
+      });
+    }, Array.from(buffer));
+    await page.reload();
+    await expect(page.getByText("Finished uploading a photo from before.")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByRole("img", { name: /^Photo 1/ })).toBeVisible();
+    await expect(page).toHaveURL(/\/sell\/[0-9a-f-]{36}$/);
+    await page.reload(); // finished photos leave the queue: nothing uploads twice
+    await expect(page.getByRole("img", { name: /^Photo \d/ })).toHaveCount(1);
+  });
+
+  test("'Why it's here' is optional and has one-tap starters", async ({ page }) => {
+    await signInVerifiedSeller(page);
+    await page.goto("/sell");
+    await addPhotos(page, "photo", 1);
+    await continueToReview(page);
+    await expect(page.getByLabel("What buyers should know")).toBeVisible();
+    await page.getByRole("button", { name: "Don't use it anymore" }).click();
+    await expect(page.getByLabel(/Why it's here/)).toHaveValue("Don't use it anymore.");
   });
 
   test("a validation error keeps what the seller typed", async ({ page }) => {
