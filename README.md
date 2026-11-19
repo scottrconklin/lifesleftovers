@@ -37,6 +37,8 @@ pnpm stripe:listen # in another terminal, when working on payments
 
 `db:start` also writes the local Supabase keys into `.env.local` (the secret key is the CLI's fixed local key, kept out of committed files so GitHub's secret scanning stays quiet).
 
+**Selling locally:** sign in, verify a phone with `000000`, then tap "Sell an item". Photos go to local storage (RustFS). Without `ANTHROPIC_API_KEY` you fill in the listing yourself; with it, the AI fills it in from the photos and checks it (see the Decisions log for cost). `AI_FAKE=1` in `.env.local` gives canned answers for trying the flow for free.
+
 **Trying locations locally:** on the home page, enter `77494` (Katy, Houston: open locally), `78701` (Austin: waitlist) or `10001` (outside every metro). Seeded members `seller01@seed.lifesleftovers.test` … `seller20@…` have verified phones and home zips across Houston; sign in as them through Mailpit.
 
 **Geography in other environments:** `pnpm db:geo` loads the zip centroids (`data/geo/`) and creates any starter metros and areas that don't exist (`src/server/geo/starter-metros.ts`), then maps every zip. It's safe to run anywhere and never changes a metro that already exists. Houston starts as "seeding" (not public); the local seed opens it.

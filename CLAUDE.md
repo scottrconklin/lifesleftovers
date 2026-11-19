@@ -52,6 +52,8 @@ Who's signed in comes only from `src/server/auth/session.ts` (`getViewer`, `requ
 
 PostGIS lives in the `extensions` schema. After `pnpm db:generate` on a table with a geography column, change drizzle-kit's quoted `"geography(Point,4326)"` to `extensions.geography(Point,4326)` in the new migration (`src/db/migrations.test.ts` fails until you do). Locations are always zip-centroid based (`src/server/geo/places.ts`); never store or log raw coordinates.
 
+Listing photos: the phone prepares them (`src/lib/client/prepare-photo.ts`), the browser PUTs to a private `u/` key, and the server re-encodes into public `p/` (`src/server/images/`). Server-side writes to storage go through `putObject` (node:http, because Next's fetch drops Content-Length). Listing AI is behind `listingAiFromEnv()` (`src/server/ai/listing-ai.ts`); e2e runs with `AI_FAKE=1`, so tests never call a paid API. Bids arrive in M4: `bidCountFor()` in `src/server/listings/repo.ts` is the one place to wire them in.
+
 ## Non-negotiable rules
 
 **Money and time**

@@ -47,18 +47,18 @@ Spec: "Location: metros, radius and areas", "Cold start: never an empty room"
 
 Spec: "Core user flows" (listing), "Image management", "Lots and free items", "Seeding inventory"
 
-- [ ] Sell flow per `Sell.dc.html`: photos first, then the AI-filled review screen.
-- [ ] Client-side: HEIC conversion, rotation fix, resize to 2048 px, quality ~80%, **all metadata stripped**.
-- [ ] Signed direct upload to R2 (MinIO locally); server re-checks type and size (15 MB max) and strips metadata again.
-- [ ] Image sizes (400, 800, 1600 px) via Cloudflare transformations; square crops on cards.
-- [ ] AI suggests title, category, description and a starting price from the photos; seller can edit everything.
-- [ ] Fields: title, "Why it's here", condition, category (13 from spec), start price ($1 default or visible custom), pickup zip, pickup windows.
-- [ ] Lot toggle (item count, what's included, size hint, up to 12 photos) and Free toggle ($0).
-- [ ] Branded items over ~$50: tag, interior and serial photos required; authenticity confirmation.
-- [ ] AI moderation check on new listings; flagged ones go to the admin queue instead of going live.
-- [ ] Edit rules: anything before the first bid; only add photos or notes after; cancel only before bids.
-- [ ] Seed script creates ~200 realistic listings including lots and free items.
-- [ ] Carried from M2: radius search over live listings, with an e2e test that shows the widened message ("Showing 23 auctions within 30 miles").
+- [x] Sell flow per `Sell.dc.html`: photos first, then the AI-filled review screen.
+- [x] Client-side: HEIC conversion, rotation fix, resize to 2048 px, quality ~80%, **all metadata stripped**.
+- [x] Signed direct upload to R2 (MinIO locally); server re-checks type and size (15 MB max) and strips metadata again.
+- [x] Image sizes (400, 800, 1600 px) via Cloudflare transformations; square crops on cards. (URL builder tested; Cloudflare transformations turn on with the production image domain.)
+- [x] AI suggests title, category, description and a starting price from the photos; seller can edit everything.
+- [x] Fields: title, "Why it's here", condition, category (13 from spec), start price ($1 default or visible custom), pickup zip, pickup windows.
+- [x] Lot toggle (item count, what's included, size hint, up to 12 photos) and Free toggle ($0).
+- [x] Branded items over ~$50: tag, interior and serial photos required; authenticity confirmation.
+- [x] AI moderation check on new listings; flagged ones go to the admin queue instead of going live.
+- [x] Edit rules: anything before the first bid; only add photos or notes after; cancel only before bids. (Bid-dependent rules tested with zero bids now; M4 re-checks them with real bids.)
+- [x] Seed script creates ~200 realistic listings including lots and free items.
+- [x] Carried from M2: radius search over live listings, with an e2e test that shows the widened message ("Showing 23 auctions within 30 miles").
 
 ## M4 — Auctions and bidding
 
