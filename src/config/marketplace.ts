@@ -68,8 +68,13 @@ export const marketplaceConfig = {
     /** Default visible starting price. Sellers may set a higher one; there are no hidden reserves. */
     defaultStartPriceCents: 100,
     freeItemStartPriceCents: 0,
-    /** Branded items at or above this start price need tag, interior and serial photos. */
+    /**
+     * Brand-name items at or above this price (the start price, or the AI's suggested price)
+     * need tag, interior and serial photos plus an authenticity confirmation.
+     */
     brandedItemProofThresholdCents: 5000,
+    /** Upper bound on a seller's custom visible start, to catch typos ($100,000 for $100). */
+    maxStartPriceCents: 500_000,
   },
 
   radius: {
@@ -97,6 +102,11 @@ export const marketplaceConfig = {
     unsoldRunsBeforePrompt: 2,
     /** What happens to an unsold auction unless the seller picks otherwise. */
     defaultUnsoldAction: "relist_once",
+    titleMaxLength: 80,
+    descriptionMaxLength: 1000,
+    whyItsHereMaxLength: 500,
+    lotContentsMaxLength: 1000,
+    lotMaxItemCount: 500,
   },
 
   images: {
@@ -119,6 +129,15 @@ export const marketplaceConfig = {
   pickup: {
     /** A missed pickup gets one reschedule; the next miss refunds the buyer and marks the no-show. */
     reschedulesAllowed: 1,
+    /** Sellers offer pickup windows in the week after Closing Night (weekday + time block). */
+    minWindows: 1,
+    maxWindows: 6,
+    /** Local hours (24h) for each block, in the metro's time zone. */
+    blocks: {
+      morning: { startHour: 9, endHour: 12 },
+      afternoon: { startHour: 12, endHour: 17 },
+      evening: { startHour: 17, endHour: 20 },
+    },
   },
 
   accounts: {
@@ -129,6 +148,20 @@ export const marketplaceConfig = {
      * About $0.008 per lookup; turned on by the owner (Decisions log, Nov 20).
      */
     rejectVoipNumbers: true,
+  },
+
+  ai: {
+    /**
+     * Listing help and moderation (SPEC "Listing help", "Moderation"). Runs only when
+     * ANTHROPIC_API_KEY is set. One model for both; switching to "claude-haiku-5-5" cuts the cost
+     * per listing by roughly 40x (Decisions log, Nov 20).
+     */
+    model: "claude-opus-5-5",
+    /** Low effort: these are short extraction and classification calls. */
+    effort: "low",
+    /** Photos sent for a suggestion, each resized to this long edge. */
+    maxPhotosForSuggestion: 4,
+    photoLongEdgePx: 768,
   },
 
   notifications: {
