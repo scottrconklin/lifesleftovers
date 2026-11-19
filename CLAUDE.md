@@ -31,6 +31,7 @@ Keep this list accurate (README.md has setup steps and local URLs):
 
 ```
 pnpm dev            # Next.js dev server (http://localhost:3100)
+pnpm dev:phone      # dev server reachable from a phone on the same Wi-Fi (prints the address)
 pnpm db:start       # supabase start (Postgres+PostGIS, Auth, Realtime, Mailpit) + docker compose (RustFS = local R2); creates .env.local / supabase/.env and fills local Supabase keys
 pnpm db:stop        # stop both (data is kept)
 pnpm db:generate    # generate a Drizzle migration from schema changes (src/db/schema)

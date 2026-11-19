@@ -49,8 +49,10 @@ services:
         # Only finished photos (p/, metadata stripped on the phone and again on the server) are
         # public. Raw uploads (u/) stay private until the server has processed them.
         $$S3 put-bucket-policy --bucket listings --policy '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":"*","Action":["s3:GetObject"],"Resource":["arn:aws:s3:::listings/p/*"]}]}'
-        # Browsers upload directly with presigned PUT URLs.
-        $$S3 put-bucket-cors --bucket listings --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:3100","http://127.0.0.1:3100","http://localhost:3200","http://127.0.0.1:3200"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}'
+        # Browsers upload directly with presigned PUT URLs (each URL is signed for one key). Any
+        # origin locally: the dev server (3100), e2e (3200) and a phone on the LAN (pnpm dev:phone).
+        # Production R2 CORS lists only the real site.
+        $$S3 put-bucket-cors --bucket listings --cors-configuration '{"CORSRules":[{"AllowedOrigins":["*"],"AllowedMethods":["GET","PUT","HEAD"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3600}]}'
         echo "listings bucket ready"
     restart: "no"
 

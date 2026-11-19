@@ -37,6 +37,8 @@ pnpm stripe:listen # in another terminal, when working on payments
 
 `db:start` also writes the local Supabase keys into `.env.local` (the secret key is the CLI's fixed local key, kept out of committed files so GitHub's secret scanning stays quiet).
 
+**Try it on your phone:** run `pnpm dev:phone` instead of `pnpm dev`, then open the address it prints (like `http://192.168.1.72:3100`) on a phone on the same Wi-Fi. Photos and uploads go to this computer's local storage. Sign in with the 6-digit code from the email (find it in Mailpit at http://localhost:54324 on the computer); the email's link points at localhost and won't open on the phone. "Use my location" needs https, so type a zip. If the phone can't connect, allow Node.js and Docker through Windows Firewall on private networks, and check the phone isn't on a guest network. To pick a different network adapter: `PHONE_HOST=192.168.x.y pnpm dev:phone`.
+
 **Selling locally:** sign in, verify a phone with `000000`, then tap "Sell an item". Photos go to local storage (RustFS). Without `ANTHROPIC_API_KEY` you fill in the listing yourself; with it, the AI fills it in from the photos and checks it (see the Decisions log for cost). `AI_FAKE=1` in `.env.local` gives canned answers for trying the flow for free.
 
 **Trying locations locally:** on the home page, enter `77494` (Katy, Houston: open locally), `78701` (Austin: waitlist) or `10001` (outside every metro). Seeded members `seller01@seed.lifesleftovers.test` … `seller20@…` have verified phones and home zips across Houston; sign in as them through Mailpit.

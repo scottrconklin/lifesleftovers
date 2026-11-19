@@ -105,7 +105,8 @@ export function PhotoUploader({
     let current = photos;
     // One at a time keeps a phone on a weak garage connection from stalling everything.
     for (const file of chosen) {
-      const tempId = crypto.randomUUID();
+      // Not crypto.randomUUID(): it's missing over plain http on a LAN (pnpm dev:phone).
+      const tempId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const preview = URL.createObjectURL(file);
       setPending((list) => [...list, { tempId, preview }]);
       const photo = await uploadOne(file, tempId);
