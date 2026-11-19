@@ -18,7 +18,7 @@ async function createAuthUser(metadata: Record<string, unknown> = {}): Promise<s
   await getSql()`
     insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at)
     values (${id}, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
-            ${id + DOMAIN}, ${JSON.stringify(metadata)}::jsonb, now(), now())`;
+            ${id + DOMAIN}, ${JSON.stringify(metadata)}::text::jsonb, now(), now())`;
   return id;
 }
 
