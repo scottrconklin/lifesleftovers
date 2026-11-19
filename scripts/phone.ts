@@ -31,22 +31,36 @@ const env = {
   NEXT_PUBLIC_IMAGE_BASE_URL: `${storage}/${process.env.S3_BUCKET ?? "listings"}`,
 };
 
-console.info(`
-  Phone mode. On a phone on the same Wi-Fi, open:
+const banner = `
+  ────────────────────────────────────────────────────────────────
+  Phone mode is ready. On a phone on the same Wi-Fi, open:
 
       ${app}
+
+  (Ignore "Network: http://0.0.0.0" above: that's not an address you can visit.)
 
   Sign in with the 6-digit code from the email, not the link (the link points at localhost).
   The emails are in Mailpit on this computer: http://localhost:54324
   Phone check code: 000000. "Use my location" needs https, so type a zip instead.
 
-  If the phone can't connect: allow Node.js (and Docker) through Windows Firewall on private
-  networks, and make sure the phone isn't on a guest network.
-`);
+  Phone can't connect? Check it's on this Wi-Fi (not mobile data or a guest network), then
+  try ${storage}/health on the phone: if that loads, it's the firewall; if not, the
+  router is keeping devices apart.
+  ────────────────────────────────────────────────────────────────
+`;
 
+// Pass Next's output through, and print the address once it's ready so it isn't scrolled away.
 const child = spawn("pnpm exec next dev -p 3100 -H 0.0.0.0", {
   env,
-  stdio: "inherit",
+  stdio: ["inherit", "pipe", "inherit"],
   shell: true,
+});
+let shown = false;
+child.stdout?.on("data", (chunk: Buffer) => {
+  process.stdout.write(chunk);
+  if (!shown && /Ready in/.test(chunk.toString())) {
+    shown = true;
+    process.stdout.write(banner);
+  }
 });
 child.on("exit", (code) => process.exit(code ?? 0));
