@@ -52,6 +52,7 @@ export function PhotoUploader({
   const [pending, setPending] = useState<Pending[]>([]);
   const [error, setError] = useState<string | null>(null);
   const listingId = useRef(initialListingId);
+  const pendingCounter = useRef(0);
   const inputId = useId();
   // A photo picked before hydration would be lost, so the pickers wait until the page is live.
   const hydrated = useHydrated();
@@ -105,8 +106,8 @@ export function PhotoUploader({
     let current = photos;
     // One at a time keeps a phone on a weak garage connection from stalling everything.
     for (const file of chosen) {
-      // Not crypto.randomUUID(): it's missing over plain http on a LAN (pnpm dev:phone).
-      const tempId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      // A counter, not crypto.randomUUID(): that's missing over plain http (pnpm dev:phone).
+      const tempId = `pending-${++pendingCounter.current}`;
       const preview = URL.createObjectURL(file);
       setPending((list) => [...list, { tempId, preview }]);
       const photo = await uploadOne(file, tempId);
