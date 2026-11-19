@@ -78,6 +78,10 @@ export const marketplaceConfig = {
     maxMiles: 50,
     /** Fewer results than this inside the radius → widen automatically and say so. */
     autoWidenBelowResults: 12,
+    /** The slider and auto-widen move in steps of this size (15 → 20 → 25 … 50). */
+    stepMiles: 5,
+    /** "Use my location" maps to the nearest zip centroid within this distance, or fails. */
+    nearestZipMaxMiles: 25,
   },
 
   metros: {

@@ -36,6 +36,8 @@ describe("marketplaceConfig", () => {
       minMiles: 5,
       maxMiles: 50,
       autoWidenBelowResults: 12,
+      stepMiles: 5,
+      nearestZipMaxMiles: 25,
     });
     expect(c.closingNight.defaultWeekday).toBe(0);
     expect(c.closingNight.defaultStartLocalTime).toBe("19:00");
