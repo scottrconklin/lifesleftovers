@@ -34,7 +34,7 @@ import { closingNightOptions, metroSchedule } from "@/server/listings/metro-sche
 import {
   addPhoto,
   bidCountFor,
-  createDraft,
+  draftForNewListing,
   findOwnListing,
   listPhotos,
   makeCover,
@@ -89,7 +89,7 @@ export async function requestPhotoUpload(input: {
       );
     }
   } else {
-    listingId = await createDraft(viewer.id);
+    listingId = await draftForNewListing(viewer.id);
   }
   const uploadKey = `u/${viewer.id}/${randomUUID()}.jpg`;
   return {

@@ -18,7 +18,18 @@ export async function bidCountFor(listingId: string): Promise<number> {
   return listingBidCount(listingId);
 }
 
-export async function createDraft(sellerId: string): Promise<string> {
+/**
+ * The draft a new listing's first photo goes into: the seller's newest draft that has no photos
+ * yet, if any, else a new one. A phone that loses the page mid-upload (Android may close Chrome
+ * while the camera is open) then picks up the same draft instead of leaving an empty one behind.
+ */
+export async function draftForNewListing(sellerId: string): Promise<string> {
+  const [empty] = await getSql()<{ id: string }[]>`
+    select l.id from public.listings l
+    where l.seller_id = ${sellerId} and l.status = 'draft'
+      and not exists (select 1 from public.listing_photos p where p.listing_id = l.id)
+    order by l.created_at desc limit 1`;
+  if (empty) return empty.id;
   const [row] = await getDb().insert(listings).values({ sellerId }).returning({ id: listings.id });
   return row!.id;
 }
@@ -134,7 +145,13 @@ export async function sellerListings(sellerId: string): Promise<SellerListing[]>
     })
     .from(listings)
     .leftJoin(metros, eq(metros.id, listings.metroId))
-    .where(eq(listings.sellerId, sellerId))
+    .where(
+      and(
+        eq(listings.sellerId, sellerId),
+        // An empty draft (no photos yet) isn't a listing anyone started in a meaningful way.
+        sql`(${listings.status} <> 'draft' or exists (select 1 from public.listing_photos p where p.listing_id = ${listings.id}))`,
+      ),
+    )
     .orderBy(desc(listings.updatedAt));
   const covers = await coverKeys(rows.map((r) => r.id));
   return rows.map((r) => ({ ...r, coverKey: covers.get(r.id) ?? null }));

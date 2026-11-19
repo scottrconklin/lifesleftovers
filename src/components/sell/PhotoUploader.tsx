@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, ImagePlus, Star, X } from "lucide-react";
-import { useId, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import {
   confirmPhotoUpload,
   deletePhoto,
@@ -9,10 +9,19 @@ import {
   setCoverPhoto,
 } from "@/app/sell/actions";
 import { FormMessage } from "@/components/forms/FormMessage";
+import {
+  assignQueuedPhotos,
+  dequeuePhoto,
+  enqueuePhoto,
+  queuedPhotosFor,
+} from "@/lib/client/photo-queue";
 import { PhotoPrepError, preparePhoto } from "@/lib/client/prepare-photo";
 import type { PhotoKind, PhotoView } from "@/server/listings/views";
 
 type Pending = { tempId: string; preview: string; error?: string };
+
+/** Queue ids being uploaded on this page, so a photo is never sent twice (React may mount twice). */
+const claimed = new Set<string>();
 
 const noopSubscribe = () => () => {};
 /** False during server render and hydration, true once the browser can handle a file pick. */
@@ -49,8 +58,10 @@ export function PhotoUploader({
   onChange?: (photos: PhotoView[]) => void;
 }) {
   const [photos, setPhotos] = useState(initialPhotos);
+  const photosRef = useRef(initialPhotos);
   const [pending, setPending] = useState<Pending[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [resumed, setResumed] = useState(0);
   const listingId = useRef(initialListingId);
   const pendingCounter = useRef(0);
   const inputId = useId();
@@ -59,13 +70,26 @@ export function PhotoUploader({
   const full = photos.length + pending.filter((p) => !p.error).length >= max;
 
   function update(next: PhotoView[]) {
+    photosRef.current = next;
     setPhotos(next);
     onChange?.(next);
   }
 
-  async function uploadOne(file: File, tempId: string): Promise<PhotoView | null> {
+  function showPending(blob: Blob): { tempId: string; preview: string } {
+    // A counter, not crypto.randomUUID(): that's missing over plain http (pnpm dev:phone --lan).
+    const tempId = `pending-${++pendingCounter.current}`;
+    const preview = URL.createObjectURL(blob);
+    setPending((list) => [...list, { tempId, preview }]);
+    return { tempId, preview };
+  }
+
+  function failPending(tempId: string, message: string) {
+    setPending((list) => list.map((p) => (p.tempId === tempId ? { ...p, error: message } : p)));
+  }
+
+  /** Upload one prepared JPEG; it leaves the phone's queue only once the server has it. */
+  async function upload(jpeg: Blob, queueId: string, tempId: string, preview: string) {
     try {
-      const jpeg = await preparePhoto(file);
       const ticket = await requestPhotoUpload({
         listingId: listingId.current,
         kind,
@@ -75,6 +99,7 @@ export function PhotoUploader({
       if (!listingId.current) {
         listingId.current = ticket.listingId;
         onListingCreated?.(ticket.listingId);
+        await assignQueuedPhotos(ticket.listingId);
       }
       const put = await fetch(ticket.uploadUrl, {
         method: "PUT",
@@ -88,47 +113,76 @@ export function PhotoUploader({
         kind,
       });
       if (!saved.ok) throw new PhotoPrepError(saved.message);
-      return saved.photo;
+      await dequeuePhoto(queueId);
+      update([...photosRef.current, saved.photo]);
+      setPending((list) => list.filter((p) => p.tempId !== tempId));
+      URL.revokeObjectURL(preview);
+      return true;
     } catch (e) {
-      const message =
-        e instanceof PhotoPrepError ? e.message : "The upload didn't go through. Try again.";
-      setPending((list) => list.map((p) => (p.tempId === tempId ? { ...p, error: message } : p)));
-      return null;
+      // The page is still here and says so; the seller can take it again.
+      await dequeuePhoto(queueId);
+      failPending(
+        tempId,
+        e instanceof PhotoPrepError ? e.message : "The upload didn't go through. Try again.",
+      );
+      return false;
     }
   }
 
   async function onFiles(files: FileList | null) {
     setError(null);
     if (!files || files.length === 0) return;
-    const room = max - photos.length - pending.filter((p) => !p.error).length;
+    const room = max - photosRef.current.length - pending.filter((p) => !p.error).length;
     const chosen = Array.from(files).slice(0, Math.max(0, room));
     if (files.length > chosen.length) setError(`That's the most photos for this listing (${max}).`);
-    let current = photos;
     // One at a time keeps a phone on a weak garage connection from stalling everything.
     for (const file of chosen) {
-      // A counter, not crypto.randomUUID(): that's missing over plain http (pnpm dev:phone).
-      const tempId = `pending-${++pendingCounter.current}`;
-      const preview = URL.createObjectURL(file);
-      setPending((list) => [...list, { tempId, preview }]);
-      const photo = await uploadOne(file, tempId);
-      if (photo) {
-        current = [...current, photo];
-        update(current);
-        setPending((list) => list.filter((p) => p.tempId !== tempId));
-        URL.revokeObjectURL(preview);
+      const { tempId, preview } = showPending(file);
+      let jpeg: Blob;
+      try {
+        jpeg = await preparePhoto(file);
+      } catch (e) {
+        failPending(
+          tempId,
+          e instanceof PhotoPrepError ? e.message : "We couldn't read that photo.",
+        );
+        continue;
       }
+      const queueId = await enqueuePhoto({ listingId: listingId.current, kind, blob: jpeg });
+      claimed.add(queueId);
+      await upload(jpeg, queueId, tempId, preview);
     }
   }
 
+  // Finish photos the page lost mid-upload (Android may close Chrome while the camera is open).
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const queued = await queuedPhotosFor(listingId.current, kind);
+      for (const q of queued) {
+        if (cancelled) return;
+        if (claimed.has(q.id)) continue;
+        claimed.add(q.id);
+        const { tempId, preview } = showPending(q.blob);
+        if (await upload(q.blob, q.id, tempId, preview)) setResumed((n) => n + 1);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Runs once per mount: the queue is read from the phone's storage, not from props.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function remove(photo: PhotoView) {
     if (!listingId.current) return;
-    update(photos.filter((p) => p.id !== photo.id));
+    update(photosRef.current.filter((p) => p.id !== photo.id));
     await deletePhoto({ listingId: listingId.current, photoId: photo.id });
   }
 
   async function makeCover(photo: PhotoView) {
     if (!listingId.current) return;
-    update([photo, ...photos.filter((p) => p.id !== photo.id)]);
+    update([photo, ...photosRef.current.filter((p) => p.id !== photo.id)]);
     await setCoverPhoto({ listingId: listingId.current, photoId: photo.id });
   }
 
@@ -233,6 +287,11 @@ export function PhotoUploader({
         <FormMessage tone="error">{pending.find((p) => p.error)?.error}</FormMessage>
       ) : null}
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
+      {resumed > 0 ? (
+        <FormMessage tone="success">
+          Finished uploading {resumed === 1 ? "a photo" : `${resumed} photos`} from before.
+        </FormMessage>
+      ) : null}
     </div>
   );
 }
