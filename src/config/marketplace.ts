@@ -45,6 +45,16 @@ export const marketplaceConfig = {
     slotIntervalSeconds: 60,
     /** New listings default to the next Closing Night at least this far out. */
     minDaysBeforeClosingNight: 3,
+    /** An unsold item relists into the Closing Night this many days later ("next week"). */
+    relistAfterDays: 7,
+    /**
+     * Backup for the per-auction closing timers: how often a sweep closes anything overdue.
+     * Every 5 minutes keeps it well inside Inngest's free tier (a 1-minute cron alone is ~43k
+     * runs a month).
+     */
+    sweepCron: "*/5 * * * *",
+    /** Closing timers sleep at most this long per step (Inngest's free tier caps a sleep at 7 days). */
+    maxSleepDays: 6,
   },
 
   bids: {
@@ -175,9 +185,12 @@ export const marketplaceConfig = {
   },
 
   devFastClock: {
-    /** FAST_CLOCK=1 (dev only): Closing Night starts this soon… */
+    /** FAST_CLOCK=1 (dev only): a new Closing Night starts this soon after it's needed… */
     closingNightStartsInSeconds: 10 * 60,
-    /** …and auctions last this long. */
+    /**
+     * …and a listing joins it only while it's at least this far away, so every auction runs at
+     * least this long; after that, listings (and relists) start the next fast night.
+     */
     auctionDurationSeconds: 5 * 60,
   },
 } as const;

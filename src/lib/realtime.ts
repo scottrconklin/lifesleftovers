@@ -20,3 +20,20 @@ export function isAuctionUpdate(value: unknown): value is AuctionUpdate {
     typeof v.extended === "boolean"
   );
 }
+
+/** What a close broadcast carries: how it ended and the final price, nothing about who. */
+export type AuctionClosed = {
+  auctionId: string;
+  outcome: "sold" | "unsold";
+  priceCents: number;
+};
+
+export function isAuctionClosed(value: unknown): value is AuctionClosed {
+  if (!value || typeof value !== "object") return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.auctionId === "string" &&
+    (v.outcome === "sold" || v.outcome === "unsold") &&
+    Number.isSafeInteger(v.priceCents)
+  );
+}

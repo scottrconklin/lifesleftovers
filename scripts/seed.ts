@@ -7,13 +7,15 @@
  *   M2  zip centroids, metros and areas (via db:geo), Houston open, fake waitlist signups
  *   M3  200 live listings with placeholder photos, including lots and free items
  *   M4  an open auction for each, with seeded bidding on about 40%
- *   M5  an upcoming Closing Night
+ *   M5  the upcoming Closing Night, each auction in its own one-minute slot (slots past the
+ *       120th share minutes); re-running after a night has closed starts the auctions fresh
  */
 import postgres from "postgres";
 import { loadGeography } from "./geo";
 import { assertLocalDatabaseUrl, loadLocalEnv } from "./lib/local-db";
 import { applyBid, type AuctionState } from "@/lib/bidding";
 import { upcomingClosingNights } from "@/lib/closing-night";
+import { nightOn, slotEndsAt } from "@/lib/closing-schedule";
 import { SEED_EMAIL_DOMAIN, SEED_USERS, SEED_WAITLIST } from "./lib/seed-data";
 import {
   CATALOG,
@@ -104,7 +106,9 @@ const steps: SeedStep[] = [
             ${night!.date}, ${JSON.stringify({ verdict: "ok", reasons: [], by: "seed" })}::text::jsonb,
             now() - ${`${i} minutes`}::interval)
           on conflict (id) do update set closing_night_date = excluded.closing_night_date,
-            status = 'live'`;
+            status = 'live', is_free = excluded.is_free,
+            start_price_cents = excluded.start_price_cents, unsold_runs = 0,
+            second_chance = false, needs_decision = false`;
         const photoCount = base.lot ? 2 : 1;
         for (let n = 0; n < photoCount; n++) {
           const photoId = seedPhotoId(i, n);
@@ -129,29 +133,66 @@ const steps: SeedStep[] = [
     },
   },
   {
-    name: "open auctions, with bidding on about 40% of them",
+    name: "a Closing Night with an open auction per listing, bidding on about 40% of them",
     async run(tx) {
+      const [houston] = await tx<
+        {
+          id: string;
+          time_zone: string;
+          closing_weekday: number;
+          closing_starts_at: string;
+          closing_ends_at: string;
+          closing_slot_seconds: number;
+        }[]
+      >`select id, time_zone, closing_weekday, closing_starts_at::text,
+          closing_ends_at::text, closing_slot_seconds
+        from public.metros where slug = 'houston'`;
+      if (!houston) throw new Error("Houston metro missing; geography didn't load");
+      const schedule = {
+        timeZone: houston.time_zone,
+        closingWeekday: houston.closing_weekday,
+        closingStartsAt: houston.closing_starts_at,
+        closingEndsAt: houston.closing_ends_at,
+      };
+      const [{ date } = { date: "" }] = upcomingClosingNights(new Date(), schedule, 1);
+      const night = nightOn(date, schedule);
+      // Seed listings hold slots 0…199; real listings joining later take the slots after them.
+      const [{ id: nightId } = { id: "" }] = await tx<{ id: string }[]>`
+        insert into public.closing_nights (metro_id, date, starts_at, ends_at, next_slot)
+        values (${houston.id}, ${night.date}, ${night.startsAt}, ${night.endsAt},
+          ${SEED_LISTING_COUNT})
+        on conflict (metro_id, starts_at) do update
+          set next_slot = greatest(public.closing_nights.next_slot, excluded.next_slot)
+        returning id`;
+
       for (let i = 0; i < SEED_LISTING_COUNT; i++) {
         const listingId = seedListingId(i);
         const auctionId = seedAuctionId(i);
-        const [l] = await tx<
-          { is_free: boolean; start: number; closing: string; seller_id: string; starts_at: Date }[]
-        >`
-          select l.is_free, l.start_price_cents as start, l.closing_night_date::text as closing,
-            l.seller_id,
-            (l.closing_night_date + m.closing_starts_at) at time zone m.time_zone as starts_at
-          from public.listings l join public.metros m on m.id = l.metro_id
-          where l.id = ${listingId}`;
+        const [l] = await tx<{ is_free: boolean; start: number; seller_id: string }[]>`
+          select l.is_free, l.start_price_cents as start, l.seller_id
+          from public.listings l where l.id = ${listingId}`;
         if (!l) continue;
+        const endsAt = slotEndsAt(night, i, houston.closing_slot_seconds);
+
+        // A seed auction from an earlier night (closed, relisted, or just stale) starts over.
+        const [prev] = await tx<{ status: string; closing_night_id: string | null }[]>`
+          select status, closing_night_id from public.auctions where id = ${auctionId}`;
+        if (prev && (prev.status !== "open" || prev.closing_night_id !== nightId)) {
+          await tx`
+            delete from public.orders where auction_id in
+              (select id from public.auctions where listing_id = ${listingId})`;
+          await tx`delete from public.auctions where listing_id = ${listingId}`;
+        }
+
         const [existing] = await tx<{ bid_count: number }[]>`
-          insert into public.auctions (id, listing_id, metro_id, closing_night_date, is_free,
-            start_price_cents, current_price_cents, ends_at, scheduled_ends_at)
-          select ${auctionId}, ${listingId}, l.metro_id, ${l.closing}, ${l.is_free}, ${l.start},
-            ${l.start}, ${l.starts_at}, ${l.starts_at}
-          from public.listings l where l.id = ${listingId}
-          on conflict (id) do update set closing_night_date = excluded.closing_night_date,
-            ends_at = excluded.ends_at, scheduled_ends_at = excluded.scheduled_ends_at,
-            status = 'open'
+          insert into public.auctions (id, listing_id, metro_id, closing_night_date,
+            closing_night_id, slot, is_free, start_price_cents, current_price_cents, ends_at,
+            scheduled_ends_at)
+          values (${auctionId}, ${listingId}, ${houston.id}, ${night.date}, ${nightId}, ${i},
+            ${l.is_free}, ${l.start}, ${l.start}, ${endsAt}, ${endsAt})
+          on conflict (id) do update set slot = excluded.slot,
+            ends_at = greatest(public.auctions.ends_at, excluded.ends_at),
+            scheduled_ends_at = excluded.scheduled_ends_at
           returning bid_count`;
         if ((existing?.bid_count ?? 0) > 0) continue; // bids already seeded
 

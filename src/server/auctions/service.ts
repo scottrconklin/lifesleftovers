@@ -2,7 +2,14 @@ import "server-only";
 import { marketplaceConfig } from "@/config/marketplace";
 import { getSql } from "@/db/client";
 import { applyBid, softCloseEndsAt, type AuctionState } from "@/lib/bidding";
-import { zonedTimeToUtc } from "@/lib/time";
+import {
+  claimSlot,
+  fastClockOn,
+  METRO_SCHEDULE_COLUMNS,
+  metroScheduleFromRow,
+  nightForListing,
+  scheduleClosing,
+} from "./schedule";
 
 /**
  * Auctions and bids. Every bid runs in ONE transaction that locks the auction row
@@ -138,57 +145,79 @@ export async function placeBid(input: {
 }
 
 /**
- * Open (or refresh) the auction for a live listing in an open metro. Until M5 assigns each item
- * its one-minute slot, an auction ends at its Closing Night's start time. Once bids exist,
- * nothing about the auction can change here.
+ * Open (or refresh) the auction for a live listing in an open metro. A new auction takes the next
+ * one-minute slot on its Closing Night; edits before the first bid refresh the price and keep the
+ * slot unless the seller picked a different night. Once bids exist, nothing changes here.
  */
-export async function syncAuctionForListing(listingId: string): Promise<void> {
+export async function syncAuctionForListing(listingId: string, now = new Date()): Promise<void> {
   const sql = getSql();
   const [row] = await sql<
-    {
+    ({
       status: string;
       metro_status: string;
-      metro_id: string;
       closing_night_date: string | null;
       is_free: boolean;
       start_price_cents: number;
-      time_zone: string;
-      closing_starts_at: string;
-    }[]
+    } & Parameters<typeof metroScheduleFromRow>[0])[]
   >`
-    select l.status, m.status as metro_status, m.id as metro_id,
-      l.closing_night_date::text as closing_night_date, l.is_free, l.start_price_cents,
-      m.time_zone, m.closing_starts_at::text as closing_starts_at
+    select l.status, m.status as metro_status, l.closing_night_date::text as closing_night_date,
+      l.is_free, l.start_price_cents, ${sql.unsafe(METRO_SCHEDULE_COLUMNS)}
     from public.listings l join public.metros m on m.id = l.metro_id
     where l.id = ${listingId}`;
   if (!row || row.status !== "live" || row.metro_status !== "open" || !row.closing_night_date) {
     return;
   }
-  const endsAt = zonedTimeToUtc(
-    row.closing_night_date,
-    row.closing_starts_at.slice(0, 5),
-    row.time_zone,
-  );
-  await sql.begin(async (tx) => {
-    const [open] = await tx<{ id: string; bid_count: number }[]>`
-      select id, bid_count from public.auctions
-      where listing_id = ${listingId} and status = 'open' for update`;
-    if (open) {
-      if (open.bid_count > 0) return;
+  const schedule = metroScheduleFromRow(row);
+  const chosenDate = row.closing_night_date;
+  const scheduled = await sql.begin(async (tx) => {
+    const [open] = await tx<
+      { id: string; bid_count: number; night_date: string | null; ends_at: Date }[]
+    >`
+      select a.id, a.bid_count, n.date::text as night_date, a.ends_at
+      from public.auctions a left join public.closing_nights n on n.id = a.closing_night_id
+      where a.listing_id = ${listingId} and a.status = 'open'
+      for update of a`;
+    if (open && open.bid_count > 0) return null;
+    const keepSlot =
+      open?.night_date != null &&
+      (fastClockOn() ? open.ends_at > now : open.night_date === chosenDate);
+    if (open && keepSlot) {
       await tx`
         update public.auctions set is_free = ${row.is_free},
-          start_price_cents = ${row.start_price_cents}, current_price_cents = ${row.start_price_cents},
-          closing_night_date = ${row.closing_night_date}, ends_at = ${endsAt},
-          scheduled_ends_at = ${endsAt}, updated_at = now()
+          start_price_cents = ${row.start_price_cents},
+          current_price_cents = ${row.start_price_cents}, updated_at = now()
         where id = ${open.id}`;
-      return;
+      return null;
     }
-    await tx`
-      insert into public.auctions (listing_id, metro_id, closing_night_date, is_free,
-        start_price_cents, current_price_cents, ends_at, scheduled_ends_at)
-      values (${listingId}, ${row.metro_id}, ${row.closing_night_date}, ${row.is_free},
-        ${row.start_price_cents}, ${row.start_price_cents}, ${endsAt}, ${endsAt})`;
+    const slot = await claimSlot(
+      tx,
+      schedule,
+      await nightForListing(tx, schedule, chosenDate, now),
+    );
+    if (slot.date !== chosenDate) {
+      // Fast clock: the listing shows the fast night's date.
+      await tx`update public.listings set closing_night_date = ${slot.date} where id = ${listingId}`;
+    }
+    if (open) {
+      await tx`
+        update public.auctions set is_free = ${row.is_free},
+          start_price_cents = ${row.start_price_cents},
+          current_price_cents = ${row.start_price_cents}, closing_night_date = ${slot.date},
+          closing_night_id = ${slot.closingNightId}, slot = ${slot.slot},
+          ends_at = ${slot.endsAt}, scheduled_ends_at = ${slot.endsAt}, updated_at = now()
+        where id = ${open.id}`;
+      return { auctionId: open.id, endsAt: slot.endsAt };
+    }
+    const [created] = await tx<{ id: string }[]>`
+      insert into public.auctions (listing_id, metro_id, closing_night_date, closing_night_id,
+        slot, is_free, start_price_cents, current_price_cents, ends_at, scheduled_ends_at)
+      values (${listingId}, ${schedule.metroId}, ${slot.date}, ${slot.closingNightId},
+        ${slot.slot}, ${row.is_free}, ${row.start_price_cents}, ${row.start_price_cents},
+        ${slot.endsAt}, ${slot.endsAt})
+      returning id`;
+    return { auctionId: created!.id, endsAt: slot.endsAt };
   });
+  if (scheduled) await scheduleClosing(scheduled.auctionId, scheduled.endsAt);
 }
 
 /** The seller pulled the listing before any bids. */
@@ -269,13 +298,19 @@ export async function hasEverBid(userId: string): Promise<boolean> {
   return Boolean(row?.any);
 }
 
-/** Leading an open auction, or selling one that has bids: account deletion waits for these. */
+/**
+ * Leading an open auction, selling one that has bids, or either side of an order: account
+ * deletion waits for these. (Orders are the money record and outlive the listing; until M6/M7
+ * define when an order is finished, any order counts.)
+ */
 export async function hasActiveAuctions(userId: string): Promise<boolean> {
   const [row] = await getSql()<{ active: boolean }[]>`
     select exists (
       select 1 from public.auctions a join public.listings l on l.id = a.listing_id
       where a.status in ('open', 'closing')
         and (a.high_bidder_id = ${userId} or (l.seller_id = ${userId} and a.bid_count > 0))
+    ) or exists (
+      select 1 from public.orders o where o.seller_id = ${userId} or o.buyer_id = ${userId}
     ) as active`;
   return Boolean(row?.active);
 }

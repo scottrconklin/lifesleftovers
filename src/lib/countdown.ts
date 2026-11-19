@@ -27,11 +27,16 @@ const WEEKDAY_LONG = [
   "Saturday",
 ] as const;
 
+/** "7:42 PM" in the metro's zone. */
+export function clockTime(at: Date, timeZone: string): string {
+  const p = localParts(at, timeZone);
+  const hour = p.hour % 12 === 0 ? 12 : p.hour % 12;
+  return `${hour}:${String(p.minute).padStart(2, "0")} ${p.hour < 12 ? "AM" : "PM"}`;
+}
+
 /** "Sun 7:42 PM" in the metro's zone. */
 export function endsAtLabel(endsAt: Date, timeZone: string): string {
-  const p = localParts(endsAt, timeZone);
-  const hour = p.hour % 12 === 0 ? 12 : p.hour % 12;
-  return `${WEEKDAY[p.weekday]} ${hour}:${String(p.minute).padStart(2, "0")} ${p.hour < 12 ? "AM" : "PM"}`;
+  return `${WEEKDAY[localParts(endsAt, timeZone).weekday]} ${clockTime(endsAt, timeZone)}`;
 }
 
 export type CountdownInput = {

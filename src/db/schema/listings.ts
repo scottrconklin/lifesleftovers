@@ -20,6 +20,7 @@ import { users } from "./users";
 
 /**
  * draft → (post) → live, or in_review when moderation flags it (admin queue, M9).
+ * live → sold (someone won it) or ended (unsold and not relisting; the seller can relist).
  * cancelled: the seller pulled it before any bids. removed: an admin took it down.
  */
 export const listingStatus = pgEnum("listing_status", [
@@ -28,6 +29,8 @@ export const listingStatus = pgEnum("listing_status", [
   "live",
   "cancelled",
   "removed",
+  "sold",
+  "ended",
 ]);
 export type ListingStatus = (typeof listingStatus.enumValues)[number];
 
@@ -79,6 +82,12 @@ export const listings = pgTable(
     /** Local date of the Closing Night it ends on; null until its metro opens. */
     closingNightDate: date(),
     unsoldAction: unsoldAction().notNull().default("relist_once"),
+    /** Closing Nights in a row it went unsold; two in a row asks the seller what to do. */
+    unsoldRuns: smallint().notNull().default(0),
+    /** This run is a relist ("Second Chance" badge and row). */
+    secondChance: boolean().notNull().default(false),
+    /** Unsold twice: waiting for the seller to make it free, bundle it into a lot, or end it. */
+    needsDecision: boolean().notNull().default(false),
 
     /** Notes added after bidding starts, when nothing else can change. Append-only. */
     sellerNotes: jsonb()
