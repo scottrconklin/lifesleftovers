@@ -126,9 +126,9 @@ export const marketplaceConfig = {
     displayNameMaxLength: 40,
     /**
      * Reject internet (VoIP) numbers with Twilio Lookup's line-type check before texting a code.
-     * Off until the owner turns it on: each lookup costs about $0.008 (Decisions log, Nov 15).
+     * About $0.008 per lookup; turned on by the owner (Decisions log, Nov 20).
      */
-    rejectVoipNumbers: false,
+    rejectVoipNumbers: true,
   },
 
   notifications: {
