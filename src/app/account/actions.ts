@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { profileFormSchema } from "@/lib/profile";
 import { updateProfile } from "@/server/accounts/profiles";
 import { getSessionUser } from "@/server/auth/session";
+import { zipExists } from "@/server/geo/places";
 import { createSupabaseAdminClient, createSupabaseServerClient } from "@/server/auth/supabase";
 
 export type ProfileState =
@@ -33,6 +34,9 @@ export async function saveProfile(
       }
     }
     return { status: "error", fieldErrors };
+  }
+  if (parsed.data.homeZip && !(await zipExists(parsed.data.homeZip))) {
+    return { status: "error", fieldErrors: { homeZip: "We don't recognize that zip code." } };
   }
   await updateProfile(user.id, parsed.data);
   return { status: "saved", savedAt: Date.now() };
