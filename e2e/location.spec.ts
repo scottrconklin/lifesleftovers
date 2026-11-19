@@ -28,10 +28,7 @@ test.describe("choosing where to browse", () => {
     await expect(page.getByText("Greater Houston · 77494")).toBeVisible();
     await expect(page.getByText("Within 15 mi")).toBeVisible();
     await expect(page.getByLabel("Distance")).toHaveValue("15");
-    // No auctions yet (they arrive with listings), so the empty state, never a bare zero.
-    await expect(page.getByTestId("radius-notice")).toHaveText(
-      "Nothing near you yet. Widen your radius?",
-    );
+    await expect(page.getByRole("list", { name: "Auctions near you" })).toBeVisible();
   });
 
   test("the distance slider runs 5–50 miles and remembers the choice", async ({ page }) => {

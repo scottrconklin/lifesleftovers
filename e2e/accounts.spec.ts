@@ -124,7 +124,7 @@ test.describe("phone check", () => {
     await page.getByLabel("6-digit code").fill("000000"); // dev-only fixed code (ALLOW_DEV_OTP)
     await page.getByRole("button", { name: "Verify" }).click();
     await expect(page).toHaveURL(/\/sell$/);
-    await expect(page.getByText("all set to sell")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add photos" })).toBeVisible();
 
     await page.goto("/account");
     await expect(page.getByText(`Verified (•••) •••-${phone.last4}`)).toBeVisible();

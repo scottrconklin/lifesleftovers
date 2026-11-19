@@ -27,6 +27,14 @@ export default defineConfig({
   ],
   webServer: {
     command: `pnpm build && pnpm exec next start -p ${PORT}`,
+    // Canned listing AI (suggestions, moderation): tests never call a paid API.
+    // (webServer.env replaces the environment, so carry the rest over.)
+    env: {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter((e): e is [string, string] => e[1] !== undefined),
+      ),
+      AI_FAKE: "1",
+    },
     url: `${baseURL}/api/time`,
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,

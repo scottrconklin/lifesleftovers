@@ -49,6 +49,8 @@ jobs:
         run: >-
           pnpm exec supabase start
           -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Start local image storage (RustFS)
+        run: docker compose up -d --wait
       - run: pnpm db:migrate
       - run: pnpm db:seed
       - run: pnpm test:db
@@ -77,8 +79,10 @@ jobs:
           -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Fill the local Supabase keys into .env.local
         run: pnpm exec tsx scripts/local-env.ts sync
+      - name: Start local image storage (RustFS)
+        run: docker compose up -d --wait
       - run: pnpm db:migrate
-      # Geography (zip centroids, metros, areas), Houston open, fake users and waitlist signups.
+      # Geography, Houston open, fake users, 200 listings with photos, waitlist signups.
       - run: pnpm db:seed
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
