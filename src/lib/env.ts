@@ -85,6 +85,7 @@ const serverShape = z.object({
   // Dev-only switches — refused on the production deployment below.
   FAST_CLOCK: bool,
   ALLOW_DEV_OTP: bool,
+  AI_FAKE: bool,
 });
 
 /** Every variable name the app reads. .env.example must list exactly these. */
@@ -103,7 +104,7 @@ export function isProductionDeployment(env: { VERCEL_ENV?: string | undefined })
 
 const serverSchema = serverShape.superRefine((env, ctx) => {
   if (isProductionDeployment(env)) {
-    for (const key of ["FAST_CLOCK", "ALLOW_DEV_OTP"] as const) {
+    for (const key of ["FAST_CLOCK", "ALLOW_DEV_OTP", "AI_FAKE"] as const) {
       if (env[key]) {
         ctx.addIssue({
           code: "custom",
