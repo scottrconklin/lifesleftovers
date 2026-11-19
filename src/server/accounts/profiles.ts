@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, isNull, ne } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { users, type UserRow } from "@/db/schema";
 import { defaultDisplayName, type ProfileForm } from "@/lib/profile";
@@ -79,4 +79,12 @@ export async function saveVerifiedPhone(
     if (pgErrorCode(error) === UNIQUE_VIOLATION) return { ok: false, reason: "taken" };
     throw error;
   }
+}
+
+/** Save a home zip only if the member hasn't set one (they share their location once). */
+export async function setHomeZipIfEmpty(userId: string, zip: string): Promise<void> {
+  await getDb()
+    .update(users)
+    .set({ homeZip: zip })
+    .where(and(eq(users.id, userId), isNull(users.homeZip)));
 }
