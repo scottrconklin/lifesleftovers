@@ -1,4 +1,5 @@
 import "server-only";
+import { listingBidCount } from "@/server/auctions/service";
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { marketplaceConfig } from "@/config/marketplace";
 import { getDb, getSql } from "@/db/client";
@@ -12,12 +13,9 @@ import {
   type ListingRow,
 } from "@/db/schema";
 
-/**
- * Bids arrive with Milestone 4. Until then no listing has any, so every edit rule that depends on
- * "before the first bid" sees zero.
- */
-export async function bidCountFor(_listingId: string): Promise<number> {
-  return 0;
+/** Bids so far on the listing's auction: the edit rules ("before the first bid") use it. */
+export async function bidCountFor(listingId: string): Promise<number> {
+  return listingBidCount(listingId);
 }
 
 export async function createDraft(sellerId: string): Promise<string> {
@@ -182,6 +180,11 @@ export type NearbyListing = {
   areaName: string | null;
   miles: number;
   coverKey: string | null;
+  /** From the open auction (the start price and 0 bids before it exists). */
+  currentPriceCents: number;
+  bidCount: number;
+  endsAt: Date | null;
+  timeZone: string;
 };
 
 /**
@@ -205,15 +208,21 @@ export async function nearbyLiveListings(
       area_name: string | null;
       miles: number;
       cover_key: string | null;
+      current_price_cents: number | null;
+      bid_count: number | null;
+      ends_at: Date | null;
+      time_zone: string;
     }>
   >`
     select l.id, l.title, l.start_price_cents, l.is_free, l.is_lot, l.lot_item_count,
       l.closing_night_date::text as closing_night_date, a.name as area_name,
       extensions.st_distance(z.location, o.location) / ${METERS_PER_MILE}::float8 as miles,
       (select p.storage_key from public.listing_photos p
-        where p.listing_id = l.id order by p.position limit 1) as cover_key
+        where p.listing_id = l.id order by p.position limit 1) as cover_key,
+      au.current_price_cents, au.bid_count, au.ends_at, m.time_zone
     from public.listings l
     join public.metros m on m.id = l.metro_id and m.status = 'open'
+    left join public.auctions au on au.listing_id = l.id and au.status = 'open'
     join public.zip_codes z on z.zip = l.pickup_zip
     left join public.areas a on a.id = z.area_id
     join public.zip_codes o on o.zip = ${originZip}
@@ -231,9 +240,25 @@ export async function nearbyLiveListings(
     areaName: r.area_name,
     miles: Number(r.miles),
     coverKey: r.cover_key,
+    currentPriceCents: r.current_price_cents ?? r.start_price_cents,
+    bidCount: r.bid_count ?? 0,
+    endsAt: r.ends_at,
+    timeZone: r.time_zone,
   }));
 }
 
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+/** What buyers see about a seller on the item page (ratings and sales arrive with M7). */
+export async function sellerSummary(
+  sellerId: string,
+): Promise<{ displayName: string | null; phoneVerified: boolean }> {
+  const [row] = await getDb()
+    .select({ displayName: users.displayName, phoneVerifiedAt: users.phoneVerifiedAt })
+    .from(users)
+    .where(eq(users.id, sellerId))
+    .limit(1);
+  return { displayName: row?.displayName ?? null, phoneVerified: Boolean(row?.phoneVerifiedAt) };
 }

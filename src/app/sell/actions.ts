@@ -17,6 +17,8 @@ import {
 import { keywordModeration } from "@/lib/moderation-rules";
 import { withNext } from "@/lib/next-path";
 import { listingAiFromEnv } from "@/server/ai/listing-ai";
+import { cancelOpenAuction, syncAuctionForListing } from "@/server/auctions/service";
+import { recordDevice } from "@/server/auth/device";
 import { getViewer, type Viewer } from "@/server/auth/session";
 import { ImageRejectedError, processListingPhoto, shrinkForAi } from "@/server/images/process";
 import {
@@ -375,6 +377,10 @@ export async function postListing(previous: PostState, formData: FormData): Prom
     status: moderation.verdict === "flagged" ? "in_review" : "live",
     postedAt: listing.postedAt ?? new Date(),
   });
+  // Live in an open metro → an open auction (or refresh its price and date, before any bids).
+  await syncAuctionForListing(listing.id);
+  if (moderation.verdict === "flagged") await cancelOpenAuction(listing.id);
+  await recordDevice(viewer.id);
   redirect(`/listings/${listing.id}${firstPost ? "?posted=1" : "?saved=1"}`);
 }
 
@@ -385,6 +391,7 @@ export async function cancelListing(formData: FormData): Promise<void> {
   if (!listing) redirect("/account/listings");
   if (editPermissions({ status: listing.status, bidCount: await bidCountFor(listing.id) }).cancel) {
     await updateListing(listing.id, { status: "cancelled", cancelledAt: new Date() });
+    await cancelOpenAuction(listing.id);
   }
   redirect(`/listings/${listing.id}`);
 }

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { DEVICE_COOKIE, DEVICE_COOKIE_MAX_AGE_SECONDS } from "@/lib/device-cookie";
 
 /**
  * Keeps Supabase sign-in sessions fresh: when the access token is near expiry, the refreshed
@@ -7,6 +8,27 @@ import { NextResponse, type NextRequest } from "next/server";
  * pages and Server Actions check the session themselves (src/server/auth/session.ts).
  */
 export async function proxy(request: NextRequest) {
+  return withDeviceCookie(request, await refreshSession(request));
+}
+
+/**
+ * Give every browser a random device ID (used only to stop accounts that share a device from
+ * bidding on each other's items). Read later by Server Actions (bids, listings), never on the
+ * first render.
+ */
+function withDeviceCookie(request: NextRequest, response: NextResponse): NextResponse {
+  if (request.cookies.get(DEVICE_COOKIE)) return response;
+  response.cookies.set(DEVICE_COOKIE, crypto.randomUUID(), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+    maxAge: DEVICE_COOKIE_MAX_AGE_SECONDS,
+    path: "/",
+  });
+  return response;
+}
+
+async function refreshSession(request: NextRequest): Promise<NextResponse> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   // Signed-out visitors (most browsing) skip the auth round trip entirely.
