@@ -64,14 +64,14 @@ Spec: "Core user flows" (listing), "Image management", "Lots and free items", "S
 
 Spec: "More flows and what Claude Code needs" (bidding checklist), "Build defaults"
 
-- [ ] Item page per `Item.dc.html`; bid sheet per `BidSheet.dc.html` with full total before confirming.
-- [ ] Max-bid (proxy) bidding with the increments from config.
-- [ ] Each bid in one locked transaction; concurrency test fires many simultaneous bids and only one leads.
-- [ ] Seller can't bid on own items (same account, phone, card fingerprint or device).
-- [ ] Card saved with a Stripe SetupIntent at first bid (test mode).
-- [ ] Live price and bid count via Supabase Realtime; countdown formats exactly as in the spec.
-- [ ] Watchlist.
-- [ ] Rate limiting on bids.
+- [x] Item page per `Item.dc.html`; bid sheet per `BidSheet.dc.html` with full total before confirming.
+- [x] Max-bid (proxy) bidding with the increments from config.
+- [x] Each bid in one locked transaction; concurrency test fires many simultaneous bids and only one leads.
+- [x] Seller can't bid on own items (same account, phone, card fingerprint or device).
+- [x] Card saved with a Stripe SetupIntent at first bid (test mode). (Built and unit-tested against a mocked Stripe; e2e runs on the dev-only fake card until Stripe test keys exist, then gets checked against real test mode.)
+- [x] Live price and bid count via Supabase Realtime; countdown formats exactly as in the spec.
+- [x] Watchlist.
+- [x] Rate limiting on bids.
 
 ## M5 — Closing Night and closing jobs
 

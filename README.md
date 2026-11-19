@@ -41,6 +41,10 @@ pnpm stripe:listen # in another terminal, when working on payments
 
 **Selling locally:** sign in, verify a phone with `000000`, then tap "Sell an item". Photos go to local storage (RustFS). Without `ANTHROPIC_API_KEY` you fill in the listing yourself; with it, the AI fills it in from the photos and checks it (see the Decisions log for cost). `AI_FAKE=1` in `.env.local` gives canned answers for trying the flow for free.
 
+**Bidding locally:** open any item, tap "Place Bid". The first bid asks for a card: with `FAKE_CARDS=1` (the default until Stripe keys exist) it saves a test "Visa ending 4242" without Stripe. Try a second account in a private window to outbid yourself and watch the price update live. Accounts that share a phone, card or browser can't bid on each other's items.
+
+**Real Stripe test cards (when you're ready, free):** create a Stripe account, stay in test mode, and copy the two test keys from Developers → API keys into `.env.local` (`STRIPE_SECRET_KEY=sk_test_…`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_…`), set `FAKE_CARDS=0`, and restart `pnpm dev`. Use card 4242 4242 4242 4242 with any future date and CVC. For webhooks, install the Stripe CLI and run `pnpm stripe:listen`; copy the `whsec_…` it prints into `STRIPE_WEBHOOK_SECRET`.
+
 **Trying locations locally:** on the home page, enter `77494` (Katy, Houston: open locally), `78701` (Austin: waitlist) or `10001` (outside every metro). Seeded members `seller01@seed.lifesleftovers.test` … `seller20@…` have verified phones and home zips across Houston; sign in as them through Mailpit.
 
 **Geography in other environments:** `pnpm db:geo` loads the zip centroids (`data/geo/`) and creates any starter metros and areas that don't exist (`src/server/geo/starter-metros.ts`), then maps every zip. It's safe to run anywhere and never changes a metro that already exists. Houston starts as "seeding" (not public); the local seed opens it.
