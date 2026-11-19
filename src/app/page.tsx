@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ClosingNightBanner } from "@/components/closing-night/ClosingNightBanner";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { BrowsingNear } from "@/components/location/BrowsingNear";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import { NotOpenScreen } from "@/components/not-open/NotOpenScreen";
 import { CardSkeleton } from "@/components/PageCard";
 import { chooseRadius } from "@/lib/radius";
+import { nextClosingNightStart } from "@/server/auctions/closing-night-view";
 import { getViewer } from "@/server/auth/session";
 import { waitlistCount } from "@/server/geo/places";
 import { getViewerLocation, type ViewerLocation } from "@/server/geo/viewer-location";
@@ -60,7 +62,10 @@ async function HomeContent() {
   if (!metro || metro.status !== "open") return <NotOpenHere location={location} />;
 
   // Radius search: every live auction within 50 mi, then the radius to show (auto-widen).
-  const nearby = await nearbyLiveListings(location.zip, metro.id);
+  const [nearby, nightStart] = await Promise.all([
+    nearbyLiveListings(location.zip, metro.id),
+    nextClosingNightStart(metro.id),
+  ]);
   const choice = chooseRadius(
     nearby.map((n) => n.miles),
     location.radiusMiles,
@@ -69,6 +74,9 @@ async function HomeContent() {
   const now = new Date();
   return (
     <HomeShell>
+      {nightStart ? (
+        <ClosingNightBanner startsAt={nightStart} timeZone={metro.timeZone} now={now} />
+      ) : null}
       <BrowsingNear location={location} choice={choice} />
       {shown.length > 0 ? (
         <ul
