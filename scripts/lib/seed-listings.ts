@@ -235,3 +235,17 @@ export function seedPhotoId(i: number, n: number): string {
 }
 
 export const SEED_LISTING_COUNT = 200;
+
+export function seedAuctionId(i: number): string {
+  return `00000000-0000-4000-b000-${String(i + 1).padStart(12, "0")}`;
+}
+
+/** Deterministic bidding on about 40% of seed listings: [bidder index offset, max dollars]. */
+export function seedBidsFor(i: number): Array<[offset: number, maxDollars: number]> {
+  if (i % 5 >= 2) return [];
+  const count = 1 + (i % 6);
+  return Array.from({ length: count }, (_, n) => [
+    1 + ((i + n * 3) % 19),
+    2 + ((i * 7 + n * 5) % 23),
+  ]);
+}

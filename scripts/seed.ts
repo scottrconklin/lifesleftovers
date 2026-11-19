@@ -6,17 +6,21 @@
  *   M1  20 fake users with verified phones (sign in as seller01@seed.lifesleftovers.test …)
  *   M2  zip centroids, metros and areas (via db:geo), Houston open, fake waitlist signups
  *   M3  200 live listings with placeholder photos, including lots and free items
+ *   M4  an open auction for each, with seeded bidding on about 40%
  *   M5  an upcoming Closing Night
  */
 import postgres from "postgres";
 import { loadGeography } from "./geo";
 import { assertLocalDatabaseUrl, loadLocalEnv } from "./lib/local-db";
+import { applyBid, type AuctionState } from "@/lib/bidding";
 import { upcomingClosingNights } from "@/lib/closing-night";
 import { SEED_EMAIL_DOMAIN, SEED_USERS, SEED_WAITLIST } from "./lib/seed-data";
 import {
   CATALOG,
   PHOTO_COLORS,
   SEED_LISTING_COUNT,
+  seedAuctionId,
+  seedBidsFor,
   seedListingId,
   seedPhotoId,
 } from "./lib/seed-listings";
@@ -121,6 +125,60 @@ const steps: SeedStep[] = [
             values (${photoId}, ${id}, 'photo', ${n}, ${key}, 800, 800, 0)
             on conflict (id) do nothing`;
         }
+      }
+    },
+  },
+  {
+    name: "open auctions, with bidding on about 40% of them",
+    async run(tx) {
+      for (let i = 0; i < SEED_LISTING_COUNT; i++) {
+        const listingId = seedListingId(i);
+        const auctionId = seedAuctionId(i);
+        const [l] = await tx<
+          { is_free: boolean; start: number; closing: string; seller_id: string; starts_at: Date }[]
+        >`
+          select l.is_free, l.start_price_cents as start, l.closing_night_date::text as closing,
+            l.seller_id,
+            (l.closing_night_date + m.closing_starts_at) at time zone m.time_zone as starts_at
+          from public.listings l join public.metros m on m.id = l.metro_id
+          where l.id = ${listingId}`;
+        if (!l) continue;
+        const [existing] = await tx<{ bid_count: number }[]>`
+          insert into public.auctions (id, listing_id, metro_id, closing_night_date, is_free,
+            start_price_cents, current_price_cents, ends_at, scheduled_ends_at)
+          select ${auctionId}, ${listingId}, l.metro_id, ${l.closing}, ${l.is_free}, ${l.start},
+            ${l.start}, ${l.starts_at}, ${l.starts_at}
+          from public.listings l where l.id = ${listingId}
+          on conflict (id) do update set closing_night_date = excluded.closing_night_date,
+            ends_at = excluded.ends_at, scheduled_ends_at = excluded.scheduled_ends_at,
+            status = 'open'
+          returning bid_count`;
+        if ((existing?.bid_count ?? 0) > 0) continue; // bids already seeded
+
+        let state: AuctionState = {
+          isFree: l.is_free,
+          startPriceCents: l.start,
+          currentPriceCents: l.start,
+          highBidderId: null,
+          highMaxCents: null,
+          bidCount: 0,
+        };
+        const sellerIndex = SEED_USERS.findIndex((u) => u.id === l.seller_id);
+        for (const [n, [offset, maxDollars]] of seedBidsFor(i).entries()) {
+          const bidder = SEED_USERS[(sellerIndex + offset) % SEED_USERS.length]!;
+          const result = applyBid(state, bidder.id, maxDollars * 100 + l.start);
+          if (!result.ok) continue;
+          state = result.state;
+          await tx`
+            insert into public.bids (auction_id, bidder_id, max_cents, created_at)
+            values (${auctionId}, ${bidder.id}, ${maxDollars * 100 + l.start},
+              now() - ${`${60 - n} minutes`}::interval)`;
+        }
+        await tx`
+          update public.auctions set current_price_cents = ${state.currentPriceCents},
+            high_bidder_id = ${state.highBidderId}, high_max_cents = ${state.highMaxCents},
+            bid_count = ${state.bidCount}
+          where id = ${auctionId}`;
       }
     },
   },
