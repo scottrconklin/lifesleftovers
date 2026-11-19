@@ -31,9 +31,11 @@ pnpm db:start      # Supabase (Postgres+PostGIS, Auth, Realtime, Mailpit) + Rust
 pnpm db:migrate    # apply migrations
 pnpm db:seed       # load local data: geography, Houston open, fake users (grows each milestone)
 pnpm dev           # http://localhost:3100
-pnpm jobs:dev      # in another terminal: Inngest dev server
+pnpm jobs:dev      # in another terminal: Inngest dev server (closes auctions; nothing closes without it)
 pnpm stripe:listen # in another terminal, when working on payments
 ```
+
+**Watch a Closing Night in minutes:** set `FAST_CLOCK=1` in `.env.local`, restart `pnpm dev`, keep `pnpm jobs:dev` running, and post a listing. It joins a Closing Night that starts about 10 minutes later and closes one item a minute; watch it at http://localhost:3100/closing-night and in the Inngest dashboard. The seeded auctions stay on next Sunday's real night.
 
 `db:start` also writes the local Supabase keys into `.env.local` (the secret key is the CLI's fixed local key, kept out of committed files so GitHub's secret scanning stays quiet).
 
@@ -95,7 +97,7 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm test:db && pnpm test:e2e
 
 - `pnpm test`: unit tests (Vitest), no services needed.
 - `pnpm test:db`: database integration tests; needs `db:start` and `db:migrate`.
-- `pnpm test:e2e`: Playwright on mobile and desktop Chromium. It builds the app and serves it on port **3200**, so it won't collide with `pnpm dev` on 3100. Sign-in tests need the local stack (`db:start` + `db:migrate`) and read their emails from Mailpit; test users are deleted afterwards.
+- `pnpm test:e2e`: Playwright on mobile and desktop Chromium. It builds the app and serves it on port **3200**, so it won't collide with `pnpm dev` on 3100. Sign-in tests need the local stack (`db:start` + `db:migrate`) and read their emails from Mailpit; test users are deleted afterwards. It also starts its own Inngest dev server on port **8298** (beside any `pnpm jobs:dev`), so closing tests really are closed by the closing job.
 
 GitHub Actions runs the same checks on every push (`.github/workflows/ci.yml`).
 

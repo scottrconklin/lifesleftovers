@@ -77,13 +77,13 @@ Spec: "More flows and what Claude Code needs" (bidding checklist), "Build defaul
 
 Spec: "The fun mechanics", "When nothing sells", "Design additions for V1" (Closing Night live view)
 
-- [ ] Closing Night per metro: Sunday 7–9 PM Central, items scheduled one per minute.
-- [ ] Inngest job closes each auction at `ends_at`; soft close extends to 2 minutes after a late bid.
-- [ ] Closing is idempotent: running it twice creates one order and one charge.
-- [ ] Unsold handling per the seller's choice: relist once (Second Chance), drop to free, or end; after two unsold runs, prompt the seller.
-- [ ] Free items: random draw among "I want it" taps when nobody bids.
-- [ ] Closing Night live view per `ClosingNight.dc.html`.
-- [ ] Dev "fast clock" mode: Closing Night in 10 minutes, 5-minute auctions.
+- [x] Closing Night per metro: Sunday 7–9 PM Central, items scheduled one per minute.
+- [x] Inngest job closes each auction at `ends_at`; soft close extends to 2 minutes after a late bid.
+- [x] Closing is idempotent: running it twice creates one order and one charge.
+- [x] Unsold handling per the seller's choice: relist once (Second Chance), drop to free, or end; after two unsold runs, prompt the seller.
+- [x] Free items: random draw among "I want it" taps when nobody bids.
+- [x] Closing Night live view per `ClosingNight.dc.html`.
+- [x] Dev "fast clock" mode: Closing Night in 10 minutes, 5-minute auctions.
 
 ## M6 — Payments, orders and payouts
 

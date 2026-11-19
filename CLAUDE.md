@@ -39,13 +39,13 @@ pnpm db:migrate     # apply Drizzle migrations
 pnpm db:geo         # load zip centroids + starter metros/areas and map zips (safe in any environment; never overwrites a metro)
 pnpm db:seed        # Houston areas, fake users, ~200 listings, a Closing Night (grows per milestone; local only)
 pnpm db:reset       # wipe and reseed local data (local only)
-pnpm jobs:dev       # Inngest dev server (http://localhost:8288), syncs localhost:3100/api/inngest
+pnpm jobs:dev       # Inngest dev server (http://localhost:8288), syncs localhost:3100/api/inngest; auctions close only while it runs
 pnpm stripe:listen  # stripe listen --forward-to localhost:3100/api/webhooks/stripe (needs the Stripe CLI)
 pnpm format         # Prettier (format:check in CI)
 pnpm lint && pnpm typecheck && pnpm test && pnpm test:db && pnpm test:e2e
 ```
 
-`pnpm test` is unit tests only. `pnpm test:db` needs the local stack (`db:start` + `db:migrate`). `pnpm test:e2e` builds and serves the app on port 3200 (the dev server uses 3100) and needs the local stack too (sign-in tests read emails from Mailpit).
+`pnpm test` is unit tests only. `pnpm test:db` needs the local stack (`db:start` + `db:migrate`). `pnpm test:e2e` builds and serves the app on port 3200 (the dev server uses 3100), starts its own Inngest dev server on 8298, and needs the local stack too (sign-in tests read emails from Mailpit).
 
 This Next.js version (16.x) differs from older ones: read `node_modules/next/dist/docs/` before using an unfamiliar API (see AGENTS.md). Cache Components is on, so a GET route that must never be cached calls `await connection()`.
 
@@ -53,7 +53,7 @@ Who's signed in comes only from `src/server/auth/session.ts` (`getViewer`, `requ
 
 PostGIS lives in the `extensions` schema. After `pnpm db:generate` on a table with a geography column, change drizzle-kit's quoted `"geography(Point,4326)"` to `extensions.geography(Point,4326)` in the new migration (`src/db/migrations.test.ts` fails until you do). Locations are always zip-centroid based (`src/server/geo/places.ts`); never store or log raw coordinates.
 
-Listing photos: the phone prepares them (`src/lib/client/prepare-photo.ts`), the browser PUTs to a private `u/` key, and the server re-encodes into public `p/` (`src/server/images/`). Server-side writes to storage go through `putObject` (node:http, because Next's fetch drops Content-Length). Listing AI is behind `listingAiFromEnv()` (`src/server/ai/listing-ai.ts`); e2e runs with `AI_FAKE=1`, so tests never call a paid API. Bidding lives in `src/server/auctions/service.ts` (`placeBid`: one transaction, auction row locked, rules from `src/lib/bidding.ts`). After a bid commits, `broadcastAuctionUpdate` sends public facts only (price, count, end) over Supabase Realtime; never a bidder or a max. `getSql()` and `getDb()` are separate pools because Drizzle rewires its client's date handling. Saved cards go through `cardVaultFromEnv()` (Stripe, or `FAKE_CARDS=1` locally and in CI).
+Listing photos: the phone prepares them (`src/lib/client/prepare-photo.ts`), the browser PUTs to a private `u/` key, and the server re-encodes into public `p/` (`src/server/images/`). Server-side writes to storage go through `putObject` (node:http, because Next's fetch drops Content-Length). Listing AI is behind `listingAiFromEnv()` (`src/server/ai/listing-ai.ts`); e2e runs with `AI_FAKE=1`, so tests never call a paid API. Bidding lives in `src/server/auctions/service.ts` (`placeBid`: one transaction, auction row locked, rules from `src/lib/bidding.ts`). After a bid commits, `broadcastAuctionUpdate` sends public facts only (price, count, end) over Supabase Realtime; never a bidder or a max. `getSql()` and `getDb()` are separate pools because Drizzle rewires its client's date handling. Saved cards go through `cardVaultFromEnv()` (Stripe, or `FAKE_CARDS=1` locally and in CI). Closing Night slots come from `src/server/auctions/schedule.ts` (`claimSlot`; `FAST_CLOCK=1` makes nights start minutes from now). `closeAuction` (`src/server/auctions/closing.ts`) is the only way an auction ends: one locked transaction, at most one order per auction, then relist or end per the seller's choice. Inngest timers and a 5-minute sweep call it (`src/inngest/functions/closing.ts`).
 
 ## Non-negotiable rules
 
