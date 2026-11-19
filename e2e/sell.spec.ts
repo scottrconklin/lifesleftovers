@@ -35,7 +35,7 @@ test.describe("selling", () => {
     await postIt(page);
     await expect(page).toHaveURL(/\/listings\/[0-9a-f-]{36}\?posted=1$/);
     await expect(page.getByText("Posted! It's live now.")).toBeVisible();
-    await expect(page.getByText("Starts at $1")).toBeVisible();
+    await expect(page.getByTestId("current-bid")).toHaveText("$1");
 
     // The stored photo carries no EXIF, GPS or camera details.
     const src = await page.getByRole("img", { name: /photo 1 of 1/ }).getAttribute("src");
@@ -77,7 +77,7 @@ test.describe("selling", () => {
     await expect(page.getByText("Posted! It's live now.")).toBeVisible();
     await expect(page.getByText("LOT · 3 items")).toBeVisible();
     await expect(page.getByText("FREE", { exact: true })).toBeVisible();
-    await expect(page.getByText(/^Free · 0 bids$/)).toBeVisible();
+    await expect(page.getByTestId("current-bid")).toHaveText("Free");
   });
 
   test("brand-name items at $50+ need tag, inside and serial photos and a confirmation", async ({
@@ -105,7 +105,7 @@ test.describe("selling", () => {
     await page.getByLabel("I confirm this item is authentic").check();
     await postIt(page);
     await expect(page.getByText("Posted! It's live now.")).toBeVisible();
-    await expect(page.getByText("Starts at $60")).toBeVisible();
+    await expect(page.getByTestId("current-bid")).toHaveText("$60");
     await expect(page.getByText("3 authenticity photos on file.")).toBeVisible();
   });
 
@@ -179,7 +179,7 @@ test.describe("browsing listings", () => {
     await page.goto("/");
     const cards = page.getByRole("list", { name: "Auctions near you" }).getByRole("listitem");
     await expect(cards.first()).toBeVisible();
-    await expect(cards.first()).toContainText(/\$\d+ · 0 bids|Free · 0 bids/);
+    await expect(cards.first()).toContainText(/(\$\d+(\.\d{2})?|Free) · \d+ bids?/);
     await expect(cards.first()).toContainText(/(Under 1|\d+) mi · /);
     await expect(page.getByTestId("radius-notice")).toHaveCount(0); // Katy has plenty within 15 mi
   });

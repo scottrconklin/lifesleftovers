@@ -72,11 +72,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Create local env files from the examples
         run: pnpm exec tsx scripts/local-env.ts prepare
-      # Sign-in tests need Auth (gotrue), its API gateway (kong) and Mailpit for the emails.
-      - name: Start Supabase (Postgres, Auth, Mailpit)
+      # Auth (gotrue) and Mailpit for sign-in, Realtime for live bids, kong in front of both.
+      - name: Start Supabase (Postgres, Auth, Realtime, Mailpit)
         run: >-
           pnpm exec supabase start
-          -x realtime,storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+          -x storage-api,imgproxy,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Fill the local Supabase keys into .env.local
         run: pnpm exec tsx scripts/local-env.ts sync
       - name: Start local image storage (RustFS)
