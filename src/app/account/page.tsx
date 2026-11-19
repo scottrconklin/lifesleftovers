@@ -72,6 +72,16 @@ async function AccountDetails() {
         )}
       </section>
 
+      <section className="flex flex-col gap-2">
+        <h2 className="font-display text-lg font-bold">Selling</h2>
+        <Link
+          href="/account/listings"
+          className="self-start font-semibold text-brand-navy underline underline-offset-4"
+        >
+          Your listings
+        </Link>
+      </section>
+
       <section className="flex flex-col gap-3 border-t border-brand-line pt-6">
         <form action={signOut}>
           <Button type="submit" variant="outline" className="bg-white">

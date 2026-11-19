@@ -1,40 +1,44 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { CardSkeleton, PageCard } from "@/components/PageCard";
-import { buttonVariants } from "@/components/ui/button";
+import { CardSkeleton } from "@/components/PageCard";
+import { PhotoStep } from "@/components/sell/PhotoStep";
+import { SellHeader } from "@/components/sell/SellHeader";
+import { listingAiFromEnv } from "@/server/ai/listing-ai";
 import { requireStep } from "@/server/auth/session";
+import { sellerListings } from "@/server/listings/repo";
 
 export const metadata: Metadata = { title: "Sell an item" };
 
 /**
- * Placeholder until the listing flow (Milestone 3). It already enforces the gate: an account,
- * then a verified phone at the first listing (SPEC "Who has to provide what, and when").
+ * Step 1 of the sell flow: photos. Gated per SPEC "Who has to provide what, and when": an account,
+ * then a verified phone at the first listing. The draft is created with the first photo.
  */
 export default function SellPage() {
   return (
-    <PageCard title="Sell an item">
-      <Suspense fallback={<CardSkeleton lines={2} />}>
-        <SellGate />
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 py-4">
+      <SellHeader title="Add photos" step="Step 1 of 2" closeHref="/" />
+      <Suspense fallback={<CardSkeleton lines={3} />}>
+        <NewListing />
       </Suspense>
-    </PageCard>
+    </main>
   );
 }
 
-async function SellGate() {
-  await requireStep("list", "/sell");
+async function NewListing() {
+  const viewer = await requireStep("list", "/sell");
+  const drafts = (await sellerListings(viewer.id)).filter((l) => l.status === "draft");
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-brand-navy">
-        You&apos;re all set to sell. The listing form is on its way in the next update: snap it,
-        start it at $1, hand it off after Sunday night.
-      </p>
-      <Link
-        href="/account"
-        className={buttonVariants({ variant: "outline", className: "self-start bg-white" })}
-      >
-        Back to your account
-      </Link>
-    </div>
+    <>
+      <PhotoStep listingId={null} photos={[]} aiEnabled={Boolean(listingAiFromEnv())} />
+      {drafts.length > 0 ? (
+        <p className="text-sm text-brand-ink-muted">
+          You have {drafts.length === 1 ? "a draft" : `${drafts.length} drafts`} in progress.{" "}
+          <Link href="/account/listings" className="font-semibold text-brand-navy underline">
+            Pick up where you left off
+          </Link>
+        </p>
+      ) : null}
+    </>
   );
 }
