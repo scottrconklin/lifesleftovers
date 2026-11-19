@@ -78,6 +78,8 @@ jobs:
       - name: Fill the local Supabase keys into .env.local
         run: pnpm exec tsx scripts/local-env.ts sync
       - run: pnpm db:migrate
+      # Geography (zip centroids, metros, areas), Houston open, fake users and waitlist signups.
+      - run: pnpm db:seed
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - name: Stop Supabase

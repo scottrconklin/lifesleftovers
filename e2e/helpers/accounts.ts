@@ -68,13 +68,14 @@ export async function signInWithEmailLink(page: Page, email = uniqueEmail(), nex
   return email;
 }
 
-/** Remove every e2e user (their profiles cascade). */
+/** Remove every e2e user (their profiles cascade) and e2e waitlist signups. */
 export async function deleteE2eUsers(): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (!url) return;
   assertLocalDatabaseUrl(url); // never touch a non-local database from tests
   const sql = postgres(url, { prepare: false, max: 1 });
   try {
+    await sql`delete from public.waitlist_signups where email like ${"%" + E2E_EMAIL_DOMAIN}`;
     await sql`delete from auth.users where email like ${"%" + E2E_EMAIL_DOMAIN}`;
   } finally {
     await sql.end();
