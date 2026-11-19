@@ -1,12 +1,15 @@
 import { Suspense } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ListingCard } from "@/components/listings/ListingCard";
 import { BrowsingNear } from "@/components/location/BrowsingNear";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import { NotOpenScreen } from "@/components/not-open/NotOpenScreen";
 import { CardSkeleton } from "@/components/PageCard";
+import { chooseRadius } from "@/lib/radius";
 import { getViewer } from "@/server/auth/session";
 import { waitlistCount } from "@/server/geo/places";
 import { getViewerLocation, type ViewerLocation } from "@/server/geo/viewer-location";
+import { liveListingCount, nearbyLiveListings } from "@/server/listings/repo";
 
 // Placeholder home until the landing page and the wall (Milestone 8). It already routes people by
 // location: pick a location, browse an open metro, or see the "not open yet" screen.
@@ -56,28 +59,43 @@ async function HomeContent() {
   const metro = location.place.metro;
   if (!metro || metro.status !== "open") return <NotOpenHere location={location} />;
 
-  // Live auctions arrive with listings (Milestone 3); until then there's nothing to measure, so
-  // the notice shows the empty state.
-  const auctionDistancesMiles: number[] = [];
+  // Radius search: every live auction within 50 mi, then the radius to show (auto-widen).
+  const nearby = await nearbyLiveListings(location.zip, metro.id);
+  const choice = chooseRadius(
+    nearby.map((n) => n.miles),
+    location.radiusMiles,
+  );
+  const shown = nearby.filter((n) => n.miles <= choice.radiusMiles);
   return (
     <HomeShell>
-      <BrowsingNear location={location} auctionDistancesMiles={auctionDistancesMiles} />
+      <BrowsingNear location={location} choice={choice} />
+      {shown.length > 0 ? (
+        <ul
+          aria-label="Auctions near you"
+          className="grid w-full grid-cols-2 gap-3 sm:grid-cols-[repeat(auto-fill,minmax(200px,1fr))]"
+        >
+          {shown.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))}
+        </ul>
+      ) : null}
     </HomeShell>
   );
 }
 
 async function NotOpenHere({ location }: { location: ViewerLocation }) {
   const metro = location.place.metro;
-  const [viewer, waiting] = await Promise.all([
+  const [viewer, waiting, listingCount] = await Promise.all([
     getViewer(),
     metro ? waitlistCount(metro.id) : Promise.resolve(0),
+    metro ? liveListingCount(metro.id) : Promise.resolve(0),
   ]);
   return (
     <NotOpenScreen
       metro={metro}
       zip={location.zip}
       waitingCount={waiting}
-      listingCount={0 /* saved listings arrive with Milestone 3 */}
+      listingCount={listingCount}
       signedIn={Boolean(viewer)}
       turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
     />

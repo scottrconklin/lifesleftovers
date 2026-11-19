@@ -6,6 +6,7 @@ import { NotOpenScreen } from "@/components/not-open/NotOpenScreen";
 import { CardSkeleton } from "@/components/PageCard";
 import { getViewer } from "@/server/auth/session";
 import { findMetroBySlug, waitlistCount } from "@/server/geo/places";
+import { liveListingCount } from "@/server/listings/repo";
 
 export const metadata: Metadata = { title: "Not open yet" };
 
@@ -30,13 +31,17 @@ async function City({ params }: Pick<PageProps<"/cities/[slug]">, "params">) {
   const metro = await findMetroBySlug(slug);
   if (!metro) notFound();
   if (metro.status === "open") redirect("/");
-  const [viewer, waiting] = await Promise.all([getViewer(), waitlistCount(metro.id)]);
+  const [viewer, waiting, listingCount] = await Promise.all([
+    getViewer(),
+    waitlistCount(metro.id),
+    liveListingCount(metro.id),
+  ]);
   return (
     <NotOpenScreen
       metro={metro}
       zip=""
       waitingCount={waiting}
-      listingCount={0 /* saved listings arrive with Milestone 3 */}
+      listingCount={listingCount}
       signedIn={Boolean(viewer)}
       turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null}
     />

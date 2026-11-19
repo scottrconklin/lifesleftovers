@@ -1,24 +1,24 @@
 import { MapPin } from "lucide-react";
 import { changeLocation } from "@/app/location/actions";
 import { Button } from "@/components/ui/button";
-import { chooseRadius, radiusNotice } from "@/lib/radius";
+import { radiusNotice, type RadiusChoice } from "@/lib/radius";
 import type { ViewerLocation } from "@/server/geo/viewer-location";
 import { RadiusNotice } from "./RadiusNotice";
 import { RadiusSlider } from "./RadiusSlider";
 
 /**
  * Location bar for an open metro: where you're browsing, the distance slider, and the auto-widen
- * notice. `auctionDistancesMiles` are the live auctions' distances from the viewer's zip.
+ * notice for the radius actually shown (chooseRadius over the live auctions' distances).
  */
 export function BrowsingNear({
   location,
-  auctionDistancesMiles,
+  choice,
 }: {
   location: ViewerLocation;
-  auctionDistancesMiles: readonly number[];
+  choice: RadiusChoice;
 }) {
   const { place } = location;
-  const notice = radiusNotice(chooseRadius(auctionDistancesMiles, location.radiusMiles));
+  const notice = radiusNotice(choice);
   return (
     <section
       aria-labelledby="browsing-heading"
