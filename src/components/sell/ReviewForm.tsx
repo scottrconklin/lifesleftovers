@@ -1,7 +1,7 @@
 "use client";
 
 import { Sparkles } from "lucide-react";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useRef, useState } from "react";
 import { postListing, type PostState } from "@/app/sell/actions";
 import { FormMessage } from "@/components/forms/FormMessage";
 import { Turnstile } from "@/components/Turnstile";
@@ -52,6 +52,15 @@ const textareaClass =
 const inputClass = "rounded-[10px] border-[1.5px] border-brand-line-strong text-[15px]";
 const fieldLabel = "text-[13px] font-bold";
 
+/** One-tap starters for "Why it's here": a short honest reason is enough. */
+const WHY_STARTERS = [
+  "Upgraded to a newer one.",
+  "Moving, and it's not coming with us.",
+  "The kids outgrew it.",
+  "We have two.",
+  "Don't use it anymore.",
+];
+
 /** 9 → "9", 17 → "5": the hours on each pickup-window button. */
 function shortHours(h: number) {
   return String(h % 12 === 0 ? 12 : h % 12);
@@ -96,6 +105,7 @@ export function ReviewForm({
     status: "idle",
     attempt: 0,
   });
+  const whyRef = useRef<HTMLTextAreaElement>(null);
   const [isLot, setIsLot] = useState(values.isLot);
   const [isFree, setIsFree] = useState(values.isFree);
   const [isBrandName, setIsBrandName] = useState(values.isBrandName);
@@ -221,7 +231,7 @@ export function ReviewForm({
 
       <div>
         <Label htmlFor="description" className={fieldLabel}>
-          Details
+          What buyers should know
         </Label>
         <textarea
           id="description"
@@ -229,24 +239,52 @@ export function ReviewForm({
           rows={3}
           defaultValue={values.description}
           maxLength={marketplaceConfig.listings.descriptionMaxLength}
+          placeholder="Runs well, new blade in spring, bag included."
+          aria-describedby="description-hint"
           className={`mt-1 ${textareaClass}`}
           aria-invalid={invalid("description")}
         />
+        <p id="description-hint" className="mt-1 text-xs text-brand-ink-muted">
+          The facts: condition, size, what&apos;s included, any flaws.
+        </p>
         {err("description")}
       </div>
 
       <div>
         <Label htmlFor="whyItsHere" className={fieldLabel}>
-          Why it&apos;s here
+          Why it&apos;s here <span className="font-normal text-brand-ink-muted">(optional)</span>
         </Label>
+        <p id="why-hint" className="text-xs text-brand-ink-muted">
+          A line on why you&apos;re letting it go. Buyers love a backstory, but &ldquo;Upgraded to a
+          riding mower&rdquo; is plenty.
+        </p>
+        <div className="mt-1.5 flex flex-wrap gap-1.5" role="group" aria-label="Quick starts">
+          {WHY_STARTERS.map((starter) => (
+            <button
+              key={starter}
+              type="button"
+              onClick={() => {
+                if (whyRef.current) {
+                  whyRef.current.value = starter;
+                  whyRef.current.focus();
+                }
+              }}
+              className="min-h-9 rounded-full border-[1.5px] border-brand-line-strong bg-white px-3 text-sm text-brand-navy"
+            >
+              {starter.replace(/\.$/, "")}
+            </button>
+          ))}
+        </div>
         <textarea
+          ref={whyRef}
           id="whyItsHere"
           name="whyItsHere"
           rows={2}
           defaultValue={values.whyItsHere}
           maxLength={marketplaceConfig.listings.whyItsHereMaxLength}
           placeholder="Grandpa's toolbox. He'd want it used, not sitting in my garage."
-          className={`mt-1 ${textareaClass}`}
+          aria-describedby="why-hint"
+          className={`mt-1.5 ${textareaClass}`}
           aria-invalid={invalid("whyItsHere")}
         />
         {err("whyItsHere")}
