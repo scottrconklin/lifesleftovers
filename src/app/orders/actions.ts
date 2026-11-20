@@ -89,18 +89,31 @@ export async function declineOfferAction(formData: FormData): Promise<void> {
 }
 
 /** Off to Stripe's hosted payout setup (in dev with FAKE_CARDS=1, straight back). */
-export async function startPayoutSetup(formData: FormData): Promise<void> {
+export type PayoutSetupState = { message: string } | null;
+
+export async function startPayoutSetup(
+  _prev: PayoutSetupState,
+  formData: FormData,
+): Promise<PayoutSetupState> {
   const viewer = await getViewer();
   if (!viewer) redirect(withNext("/sign-in", "/account/payouts"));
   const from = String(formData.get("from") ?? "/account/payouts");
   const safeFrom = from.startsWith("/") && !from.startsWith("//") ? from : "/account/payouts";
   const base = serverEnv().APP_URL;
-  const url = await payoutSetupUrl(
-    { id: viewer.id, email: viewer.email },
-    {
-      returnUrl: `${base}/account/payouts/return?from=${encodeURIComponent(safeFrom)}`,
-      refreshUrl: `${base}/account/payouts/refresh`,
-    },
-  );
+  let url: string;
+  try {
+    url = await payoutSetupUrl(
+      { id: viewer.id, email: viewer.email },
+      {
+        returnUrl: `${base}/account/payouts/return?from=${encodeURIComponent(safeFrom)}`,
+        refreshUrl: `${base}/account/payouts/refresh`,
+      },
+    );
+  } catch (error) {
+    // Stripe down or misconfigured (e.g. Connect not turned on). Log the kind, never the details.
+    const { code, type } = error as { code?: string; type?: string };
+    console.warn("payout setup failed", { code: code ?? type ?? "unknown" });
+    return { message: "We couldn't open payout setup just now. Try again in a few minutes." };
+  }
   redirect(url);
 }
