@@ -30,7 +30,8 @@ export default defineConfig({
   webServer: [
     {
       command: `pnpm build && pnpm exec next start -p ${PORT}`,
-      // Canned listing AI (suggestions, moderation): tests never call a paid API. Closing jobs go
+      // Canned listing AI (suggestions, moderation) and the fake payment gateway: tests never
+      // call a paid API. Closing and payment jobs go
       // to this run's own Inngest dev server below. (webServer.env replaces the environment, so
       // carry the rest over.)
       env: {
@@ -38,6 +39,8 @@ export default defineConfig({
           Object.entries(process.env).filter((e): e is [string, string] => e[1] !== undefined),
         ),
         AI_FAKE: "1",
+        // Pretend money even when .env.local has Stripe test keys: tests never call Stripe.
+        FAKE_CARDS: "1",
         INNGEST_DEV: "1",
         INNGEST_BASE_URL: `http://127.0.0.1:${INNGEST_PORT}`,
       },

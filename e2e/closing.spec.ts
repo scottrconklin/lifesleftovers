@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import {
+  bidThroughUi,
   endAuctionIn,
   freshAuction,
   leadingBid,
@@ -11,21 +12,6 @@ import { signInVerifiedSeller } from "./helpers/selling";
 // Milestone 5: Closing Night. The e2e run starts its own Inngest dev server (playwright.config.ts),
 // so these auctions really are closed by the closing job, on time.
 test.describe.configure({ timeout: 150_000 });
-
-/** Place a max bid from the item page (saving the fake card first if asked). */
-async function bidThroughUi(page: import("@playwright/test").Page, dollars: number) {
-  await page.getByRole("button", { name: "Place Bid" }).click();
-  const sheet = page.getByRole("dialog", { name: "Place a bid" });
-  const saveCard = sheet.getByRole("button", { name: "Save test card" });
-  const maxBid = sheet.getByLabel("Your maximum bid");
-  await expect(saveCard.or(maxBid)).toBeVisible();
-  if (await saveCard.isVisible()) await saveCard.click();
-  await maxBid.fill(String(dollars));
-  const place = sheet.getByRole("button", { name: `Place Bid · $${dollars}` });
-  await expect(place).toBeEnabled({ timeout: 15_000 });
-  await place.click();
-  await expect(sheet).toBeHidden();
-}
 
 test("closes on time: the winner sees 'You won!' and the total with the premium", async ({
   page,
@@ -42,7 +28,10 @@ test("closes on time: the winner sees 'You won!' and the total with the premium"
   await expect(page.getByTestId("closed-headline")).toHaveText("Sold for $1", {
     timeout: 60_000,
   });
-  await expect(page.getByText(/You won! Your total is \$2 with the buyer's premium/)).toBeVisible();
+  // The charge may already have gone through by the time the page reloads.
+  await expect(
+    page.getByText(/You won! (Your total is|Paid) \$2 with the buyer's premium/),
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "Place Bid" })).toHaveCount(0);
 });
 

@@ -118,23 +118,30 @@ function FakeCard({ onSaved }: { onSaved: (card: { brand: string; last4: string 
   return (
     <div className="flex flex-col gap-2">
       <p className="rounded-lg bg-brand-sand px-3 py-2 text-sm text-brand-navy">
-        Dev mode: no real card needed. This saves a test Visa ending 4242.
+        Dev mode: no real card needed. This saves a test Visa ending 4242 (or 0002, which declines).
       </p>
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
+      <Button type="button" size="lg" disabled={busy} onClick={() => save(null)}>
+        {busy ? "Saving…" : "Save test card"}
+      </Button>
+      {/* Charges to this one fail, to try the "fix your payment" flow. */}
       <Button
         type="button"
-        size="lg"
+        variant="outline"
+        className="bg-white"
         disabled={busy}
-        onClick={async () => {
-          setBusy(true);
-          const saved = await completeCardSetup(null);
-          setBusy(false);
-          if (saved.ok) onSaved(saved);
-          else setError(saved.message);
-        }}
+        onClick={() => save("fake:decline")}
       >
-        {busy ? "Saving…" : "Save test card"}
+        Save a test card that declines
       </Button>
     </div>
   );
+
+  async function save(kind: string | null) {
+    setBusy(true);
+    const saved = await completeCardSetup(kind);
+    setBusy(false);
+    if (saved.ok) onSaved(saved);
+    else setError(saved.message);
+  }
 }

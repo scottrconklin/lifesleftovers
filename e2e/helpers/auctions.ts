@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { expect, type Page } from "@playwright/test";
 import { existsSync } from "node:fs";
 import postgres from "postgres";
 import { assertLocalDatabaseUrl } from "../../scripts/lib/local-db";
@@ -123,6 +124,31 @@ export async function leadingBid(auctionId: string, bidderId: string, priceCents
   } finally {
     await sql.end();
   }
+}
+
+/**
+ * Place a max bid from the item page, saving a fake card first if the sheet asks (one that
+ * declines every charge, with `decliningCard`).
+ */
+export async function bidThroughUi(
+  page: Page,
+  dollars: number,
+  opts: { decliningCard?: boolean } = {},
+) {
+  await page.getByRole("button", { name: "Place Bid" }).click();
+  const sheet = page.getByRole("dialog", { name: "Place a bid" });
+  const saveCard = sheet.getByRole("button", {
+    name: opts.decliningCard ? "Save a test card that declines" : "Save test card",
+    exact: true,
+  });
+  const maxBid = sheet.getByLabel("Your maximum bid");
+  await expect(saveCard.or(maxBid)).toBeVisible();
+  if (await saveCard.isVisible()) await saveCard.click();
+  await maxBid.fill(String(dollars));
+  const place = sheet.getByRole("button", { name: `Place Bid · $${dollars}` });
+  await expect(place).toBeEnabled({ timeout: 15_000 });
+  await place.click();
+  await expect(sheet).toBeHidden();
 }
 
 export async function deleteE2eAuctions(): Promise<void> {

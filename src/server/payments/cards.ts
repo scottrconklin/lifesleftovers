@@ -130,19 +130,26 @@ export async function cardFromPaymentMethod(
   };
 }
 
-/** Dev and CI only: saves "Visa ending 4242" with a per-member fingerprint. */
+/** With the fake vault, this "setup intent" saves a card the fake gateway declines. */
+export const FAKE_DECLINING_CARD = "fake:decline";
+
+/**
+ * Dev and CI only: saves "Visa ending 4242" with a per-member fingerprint, or (asked for with
+ * FAKE_DECLINING_CARD) "Visa ending 0002", which every charge declines, like Stripe's test card.
+ */
 export function createFakeVault(): CardVault {
   return {
     kind: "fake",
     async startSetup() {
       return { clientSecret: null };
     },
-    async completeSetup(user) {
+    async completeSetup(user, setupIntentId) {
+      const declines = setupIntentId === FAKE_DECLINING_CARD;
       return {
-        paymentMethodId: `fake_pm_${randomUUID()}`,
+        paymentMethodId: `fake_pm_${declines ? "decline_" : ""}${randomUUID()}`,
         fingerprint: `fake_fp_${user.id}`,
         brand: "visa",
-        last4: "4242",
+        last4: declines ? "0002" : "4242",
         expMonth: 12,
         expYear: 2030,
       };

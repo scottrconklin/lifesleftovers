@@ -126,7 +126,7 @@ export async function closingNightView(
     select a.id as auction_id, l.id as listing_id, l.title, o.kind, o.price_cents
     from public.auctions a
     join public.listings l on l.id = a.listing_id
-    join public.orders o on o.auction_id = a.id
+    join public.orders o on o.auction_id = a.id and o.cancelled_at is null
     where a.closing_night_id = ${night.id} and a.status = 'sold'
     order by a.closed_at desc
     limit ${JUST_SOLD}`;

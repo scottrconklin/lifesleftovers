@@ -39,7 +39,7 @@ export interface PaymentGateway {
   refund(req: { orderId: string; paymentIntentId: string }): Promise<{ refundId: string }>;
   /** The seller's Express account, created once per member. */
   createSellerAccount(user: { id: string; email: string | null }): Promise<{ accountId: string }>;
-  /** Stripe's hosted payout setup; the fake gateway goes straight to `returnUrl`. */
+  /** Stripe's hosted payout setup; the fake gateway goes straight back (as a same-site path). */
   onboardingUrl(req: { accountId: string; returnUrl: string; refreshUrl: string }): Promise<string>;
   payoutsEnabled(accountId: string): Promise<boolean>;
   /** Move a released sale's money to the seller's Stripe balance. */
@@ -223,7 +223,9 @@ export function createFakeGateway(): PaymentGateway {
       return { accountId: `fake_acct_${user.id}` };
     },
     async onboardingUrl(req) {
-      return req.returnUrl;
+      // Straight back, on whatever host the browser is using (a phone, the e2e server).
+      const back = new URL(req.returnUrl);
+      return `${back.pathname}${back.search}`;
     },
     async payoutsEnabled() {
       return true;

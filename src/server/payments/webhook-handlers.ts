@@ -58,6 +58,20 @@ export function webhookDeps(stripe: Stripe): WebhookDeps {
   };
 }
 
+/**
+ * The events handleStripeEvent acts on. `pnpm stripe:listen` subscribes to exactly these (a unit
+ * test keeps package.json in step); production webhook endpoints should send the same list.
+ */
+export const HANDLED_STRIPE_EVENTS = [
+  "setup_intent.succeeded",
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed",
+  "charge.refunded",
+  "account.updated",
+  "payout.paid",
+  "payout.failed",
+] as const;
+
 const idOf = (v: string | { id: string } | null | undefined) =>
   typeof v === "string" ? v : (v?.id ?? null);
 

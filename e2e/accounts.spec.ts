@@ -141,6 +141,7 @@ test.describe("phone check", () => {
   });
 
   test("allows one account per phone number", async ({ browser }) => {
+    test.setTimeout(60_000); // two full sign-ins (Turnstile and an email each)
     const phone = uniquePhone();
     const first = await browser.newPage();
     await signInWithEmailLink(first);
@@ -166,6 +167,7 @@ test.describe("phone check", () => {
 
 test.describe("account deletion", () => {
   test("deletes the account from settings and signs out", async ({ page }) => {
+    test.setTimeout(60_000); // two full sign-ins (Turnstile and an email each)
     const email = await signInWithEmailLink(page);
     await page.getByRole("link", { name: "Delete my account" }).click();
     await expect(page.getByRole("heading", { name: "Delete your account?" })).toBeVisible();

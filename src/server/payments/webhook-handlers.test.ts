@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { describe, expect, it, vi } from "vitest";
-import { handleStripeEvent, type WebhookDeps } from "./webhook-handlers";
+import { readFileSync } from "node:fs";
+import { HANDLED_STRIPE_EVENTS, handleStripeEvent, type WebhookDeps } from "./webhook-handlers";
 
 const card = {
   paymentMethodId: "pm_123",
@@ -156,5 +157,15 @@ describe("seller payout events", () => {
       d,
     );
     expect(d.payout).toHaveBeenLastCalledWith("po_2", { paid: false, failure: "account_closed" });
+  });
+});
+
+describe("pnpm stripe:listen", () => {
+  it("subscribes to exactly the events we handle", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8")) as {
+      scripts: Record<string, string>;
+    };
+    const events = /--events (\S+)/.exec(pkg.scripts["stripe:listen"] ?? "")?.[1]?.split(",");
+    expect(events?.toSorted()).toEqual([...HANDLED_STRIPE_EVENTS].toSorted());
   });
 });

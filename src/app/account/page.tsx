@@ -3,10 +3,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Avatar } from "@/components/Avatar";
+import { PayoutSetupButton } from "@/components/orders/PayoutSetupButton";
 import { CardSkeleton, PageCard } from "@/components/PageCard";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { maskPhone } from "@/lib/phone";
 import { requireViewer } from "@/server/auth/session";
+import { payoutSummary } from "@/server/payments/payouts";
 import { signOut } from "./actions";
 import { ProfileForm } from "./ProfileForm";
 
@@ -24,6 +26,7 @@ export default function AccountPage() {
 
 async function AccountDetails() {
   const viewer = await requireViewer("/account");
+  const payouts = await payoutSummary(viewer.id);
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-center gap-4">
@@ -72,13 +75,40 @@ async function AccountDetails() {
         )}
       </section>
 
+      {payouts.hasSales && payouts.setup !== "ready" ? (
+        <section className="flex flex-col gap-3 rounded-xl bg-brand-sand/60 p-4">
+          <p className="text-brand-navy">
+            You sold something! Set up payouts so we can pay you. We hold your money until it&apos;s
+            done.
+          </p>
+          <div className="self-start">
+            <PayoutSetupButton
+              from="/account"
+              label={payouts.setup === "started" ? "Finish payout setup" : "Set up payouts"}
+            />
+          </div>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-2">
         <h2 className="font-display text-lg font-bold">Buying and selling</h2>
+        <Link
+          href="/account/orders"
+          className="self-start font-semibold text-brand-navy underline underline-offset-4"
+        >
+          Wins and sales
+        </Link>
         <Link
           href="/account/listings"
           className="self-start font-semibold text-brand-navy underline underline-offset-4"
         >
           Your listings
+        </Link>
+        <Link
+          href="/account/payouts"
+          className="self-start font-semibold text-brand-navy underline underline-offset-4"
+        >
+          Payouts
         </Link>
         <Link
           href="/account/watching"

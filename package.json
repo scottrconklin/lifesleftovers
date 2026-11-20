@@ -23,7 +23,7 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:reset": "tsx scripts/reset.ts",
     "jobs:dev": "inngest-cli dev -u http://localhost:3100/api/inngest --no-discovery",
-    "stripe:listen": "stripe listen --forward-to localhost:3100/api/webhooks/stripe"
+    "stripe:listen": "stripe listen --events setup_intent.succeeded,payment_intent.succeeded,payment_intent.payment_failed,charge.refunded,account.updated,payout.paid,payout.failed --forward-to localhost:3100/api/webhooks/stripe"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "1.10.0",
