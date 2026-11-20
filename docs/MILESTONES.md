@@ -89,12 +89,12 @@ Spec: "The fun mechanics", "When nothing sells", "Design additions for V1" (Clos
 
 Spec: "Payments and monetization", "Keeping deals on the platform"
 
-- [ ] Winner charged off-session at close (amount + 10% buyer's premium, min $1); idempotency keys on every Stripe call.
-- [ ] Failed charge: winner gets 24 hours to fix it, then the item is offered to the second-highest bidder.
-- [ ] Funds held in the platform balance; order status tracked from webhooks (signatures verified).
-- [ ] Seller payout setup (Stripe Express onboarding) prompted after the first sale; money held until done.
-- [ ] Transfer to seller after "Picked up" or 72 hours with no dispute; payouts every two weeks, $15 minimum rolling balance.
-- [ ] Refund before transfer when a buyer reports "not as described."
+- [x] Winner charged off-session at close (amount + 10% buyer's premium, min $1); idempotency keys on every Stripe call.
+- [x] Failed charge: winner gets 24 hours to fix it, then the item is offered to the second-highest bidder.
+- [x] Funds held in the platform balance; order status tracked from webhooks (signatures verified).
+- [x] Seller payout setup (Stripe Express onboarding) prompted after the first sale; money held until done.
+- [x] Transfer to seller after "Picked up" or 72 hours with no dispute; payouts every two weeks, $15 minimum rolling balance.
+- [x] Refund before transfer when a buyer reports "not as described."
 
 ## M7 — Pickup, messaging and ratings
 
