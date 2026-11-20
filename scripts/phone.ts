@@ -7,16 +7,21 @@
  * `pnpm dev:phone --lan`: no tunnel; the phone uses this computer's Wi-Fi address directly
  * (only works when the router lets devices on the Wi-Fi reach each other).
  *
+ * `--built`: build the app once (after the tunnels open, so their addresses are baked in) and
+ * serve the build instead of the dev server. Pages don't compile on first visit, so the phone
+ * doesn't stall or freeze mid-test; code changes need a restart. Combines with --lan.
+ *
  * Either way the app's browser-facing URLs (APP_URL, upload URLs, image URLs) point at the phone's
  * address; the server keeps talking to the database, Auth and storage locally.
  */
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { lanAddress } from "./lib/lan";
 import { loadLocalEnv } from "./lib/local-db";
 import { findCloudflared, startTunnel } from "./lib/tunnel";
 
 loadLocalEnv();
 const lan = process.argv.includes("--lan");
+const built = process.argv.includes("--built");
 const bucket = process.env.S3_BUCKET ?? "listings";
 const tunnels: ChildProcess[] = [];
 
@@ -76,7 +81,7 @@ async function main() {
       ${app}
 
   (Ignore "Network: http://0.0.0.0" above: that's not an address you can visit.)
-  The first page load can take a while: it's compiling.
+  ${built ? "This is a build: restart to pick up code changes." : "The first page load can take a while: it's compiling."}
 
   Sign in with the 6-digit code from the email, not the link (the link points at localhost).
   The emails are in Mailpit on this computer: http://localhost:54324
@@ -86,8 +91,16 @@ async function main() {
   ────────────────────────────────────────────────────────────────
 `;
 
+  if (built) {
+    console.info("Building the app (a minute or two)…");
+    const build = spawnSync("pnpm build", { env, stdio: "inherit", shell: true });
+    if (build.status !== 0)
+      throw new Error("The build failed (see above), so nothing was started.");
+  }
+
   // Pass Next's output through, and print the address once it's ready so it isn't scrolled away.
-  const child = spawn("pnpm exec next dev -p 3100 -H 0.0.0.0", {
+  const command = built ? "next start" : "next dev";
+  const child = spawn(`pnpm exec ${command} -p 3100 -H 0.0.0.0`, {
     env,
     stdio: ["inherit", "pipe", "inherit"],
     shell: true,
