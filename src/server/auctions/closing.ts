@@ -3,7 +3,7 @@ import { randomInt } from "node:crypto";
 import { marketplaceConfig } from "@/config/marketplace";
 import { getSql } from "@/db/client";
 import { inngest } from "@/inngest/client";
-import { buyerPremiumCents } from "@/lib/money";
+import { buyerPremiumCents, sellerPayoutCents } from "@/lib/money";
 import { broadcastAuctionClosed } from "@/server/realtime/broadcast";
 import {
   claimSlot,
@@ -16,8 +16,8 @@ import {
 /**
  * Closing an auction (SPEC "The fun mechanics", "When nothing sells"). One transaction that locks
  * the auction and its listing, so running it twice, or twice at once, closes it once: the second
- * run finds it no longer open. The order's unique auction id is a second guard, and M6 charges
- * with the order id as the Stripe idempotency key, so one close is one charge.
+ * run finds it no longer open. One live order per auction is a second guard, and payments charge
+ * with the order id in the Stripe idempotency key, so one close is one charge.
  */
 
 export type CloseResult =
@@ -87,9 +87,9 @@ export async function closeAuction(auctionId: string, now = new Date()): Promise
       const premium = buyerPremiumCents(price, { isFreeItem: a.is_free });
       const [order] = await tx<{ id: string }[]>`
         insert into public.orders (auction_id, listing_id, buyer_id, seller_id, kind, status,
-          price_cents, premium_cents, total_cents)
+          price_cents, premium_cents, total_cents, seller_payout_cents)
         values (${a.id}, ${a.listing_id}, ${a.high_bidder_id}, ${a.seller_id}, 'sale',
-          'awaiting_payment', ${price}, ${premium}, ${price + premium})
+          'awaiting_payment', ${price}, ${premium}, ${price + premium}, ${sellerPayoutCents(price)})
         returning id`;
       await markSold();
       return done({
@@ -167,7 +167,7 @@ export async function closeAuction(auctionId: string, now = new Date()): Promise
     });
   });
 
-  // After commit: tell viewers, start the relist's timer, and hand sales to payments (M6).
+  // After commit: tell viewers, start the relist's timer, and hand sales to payments.
   if (metroId && (result.kind === "sold" || result.kind === "unsold")) {
     await broadcastAuctionClosed(metroId, {
       auctionId,

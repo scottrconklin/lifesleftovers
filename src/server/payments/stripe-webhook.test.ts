@@ -37,6 +37,13 @@ describe("verifyStripeWebhook", () => {
     expect(verifyStripeWebhook(payload, null, secret)).toMatchObject({ ok: false, status: 400 });
   });
 
+  it("accepts either secret (our account's or the connected accounts' endpoint)", () => {
+    const connect = "whsec_connect_secret";
+    const header = Stripe.webhooks.generateTestHeaderString({ payload, secret: connect });
+    expect(verifyStripeWebhook(payload, header, [secret, connect]).ok).toBe(true);
+    expect(verifyStripeWebhook(payload, header, [secret, undefined]).ok).toBe(false);
+  });
+
   it("fails closed with 500 when no secret is configured", () => {
     const header = Stripe.webhooks.generateTestHeaderString({ payload, secret });
     expect(verifyStripeWebhook(payload, header, undefined)).toMatchObject({

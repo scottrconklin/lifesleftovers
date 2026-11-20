@@ -23,6 +23,10 @@ export const users = pgTable(
     phoneVerifiedAt: timestamp({ withTimezone: true }),
     /** Stripe Customer ("cus_…"), created when the member first saves a card. */
     stripeCustomerId: text().unique(),
+    /** Stripe Connect Express account ("acct_…") for payouts, created at payout setup. */
+    stripeAccountId: text().unique(),
+    /** When Stripe said the account can receive payouts. Sale money is held until then. */
+    payoutsEnabledAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()

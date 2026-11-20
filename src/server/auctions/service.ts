@@ -283,11 +283,15 @@ export async function bidStanding(
   return { hasBid: row.my_max !== null, leading: Boolean(row.leading), myMaxCents: row.my_max };
 }
 
-/** Bids on the listing's open (or latest) auction: the edit rules depend on it. */
+/**
+ * Bids on the listing's open auction: the edit rules ("before the first bid") depend on it. A
+ * finished run's bids don't count, so a listing whose sale fell through can be edited and
+ * relisted like any ended one.
+ */
 export async function listingBidCount(listingId: string): Promise<number> {
   const [row] = await getSql()<{ n: number }[]>`
     select coalesce(max(bid_count), 0)::int as n from public.auctions
-    where listing_id = ${listingId} and status <> 'cancelled'`;
+    where listing_id = ${listingId} and status in ('open', 'closing')`;
   return row?.n ?? 0;
 }
 
@@ -299,9 +303,10 @@ export async function hasEverBid(userId: string): Promise<boolean> {
 }
 
 /**
- * Leading an open auction, selling one that has bids, or either side of an order: account
- * deletion waits for these. (Orders are the money record and outlive the listing; until M6/M7
- * define when an order is finished, any order counts.)
+ * Leading an open auction, selling one that has bids, an unfinished purchase, or any sale (a
+ * seller's orders are the money record and outlive the listing, which can't be deleted under
+ * them): account deletion waits for these. A purchase is finished once the money has been
+ * released, refunded or the order cancelled. (Free claims count until M7 adds their pickup.)
  */
 export async function hasActiveAuctions(userId: string): Promise<boolean> {
   const [row] = await getSql()<{ active: boolean }[]>`
@@ -310,7 +315,9 @@ export async function hasActiveAuctions(userId: string): Promise<boolean> {
       where a.status in ('open', 'closing')
         and (a.high_bidder_id = ${userId} or (l.seller_id = ${userId} and a.bid_count > 0))
     ) or exists (
-      select 1 from public.orders o where o.seller_id = ${userId} or o.buyer_id = ${userId}
+      select 1 from public.orders o
+      where o.seller_id = ${userId}
+        or (o.buyer_id = ${userId} and o.status not in ('released', 'refunded', 'cancelled'))
     ) as active`;
   return Boolean(row?.active);
 }

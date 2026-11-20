@@ -22,17 +22,33 @@ export const marketplaceConfig = {
   },
 
   payouts: {
-    /** Sellers are paid out on a schedule, not per sale. */
+    /** Sellers are paid out on a schedule, not per sale: at most once in this many days… */
     intervalDays: 14,
+    /** …checked by this weekly job (Mondays 15:00 UTC, morning in Houston). */
+    payoutCron: "0 15 * * 1",
     /** Balances under this roll over to the next payout. */
     minimumBalanceCents: 1500,
-    /** Funds release to the seller this long after payment if the buyer hasn't confirmed pickup or disputed. */
+    /**
+     * Payment protection: money is released to the seller when the buyer taps "Picked up", or
+     * this long after the last pickup window the seller offered (or after payment, if later)
+     * with no problem reported (Decisions log, Nov 19).
+     */
     autoReleaseHours: 72,
+    /** A sale is paid out only once its charge is this old, so Stripe has settled the funds. */
+    settleDays: 3,
   },
 
   payments: {
     /** A winner whose card fails has this long to fix it before the second-highest bidder gets the offer. */
     failedChargeGraceHours: 24,
+    /** The runner-up has this long to take a second-chance offer. */
+    secondChanceOfferHours: 24,
+    /** Backup for the order timers: charges, deadlines and transfers a lost event missed. */
+    sweepCron: "*/15 * * * *",
+    /** The sweep charges an order still awaiting payment after this long (its event was lost). */
+    sweepChargeAfterSeconds: 120,
+    /** Longest note a buyer can attach to "not as described". */
+    problemNoteMaxLength: 1000,
   },
 
   closingNight: {

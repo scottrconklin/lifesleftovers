@@ -29,6 +29,13 @@ export function buyerPremiumCents(priceCents: number, opts: { isFreeItem?: boole
   return Math.max(buyerPremiumMinCents, pct);
 }
 
+/** What the seller receives from a sale: the price less the seller fee (0% in V1). */
+export function sellerPayoutCents(priceCents: number): number {
+  assertCents(priceCents, "priceCents");
+  const fee = Math.round((priceCents * marketplaceConfig.fees.sellerFeeBps) / 10_000);
+  return priceCents - fee;
+}
+
 const usdWhole = new Intl.NumberFormat("en-US", {
   style: "currency",
   currency: "USD",

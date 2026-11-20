@@ -211,11 +211,52 @@ export const wantTaps = pgTable(
 ).enableRLS();
 
 /**
- * What a closed auction produced: a sale (charged in M6) or a free-item claim. One per auction:
- * the unique auction id is what makes closing idempotent.
+ * Seller payouts: transferred sale money paid out to the bank every two weeks once it reaches
+ * the minimum (SPEC "What a sale really costs").
+ */
+export const payoutStatus = pgEnum("payout_status", ["pending", "paid", "failed"]);
+
+export const payouts = pgTable(
+  "payouts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    sellerId: uuid().references(() => users.id, { onDelete: "set null" }),
+    amountCents: integer().notNull(),
+    status: payoutStatus().notNull().default("pending"),
+    /** "po_…" on the seller's connected account; "fake_po_…" with FAKE_CARDS=1. */
+    stripePayoutId: text().unique(),
+    /** Stripe's failure code, never bank details. */
+    failure: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    paidAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [
+    index("payouts_seller_idx").on(t.sellerId, t.createdAt),
+    check("payouts_positive", sql`${t.amountCents} > 0`),
+  ],
+).enableRLS();
+
+/**
+ * What a closed auction produced: a sale or a free-item claim. One live order per auction (a
+ * cancelled one can be followed by a second-chance offer): that's what makes closing idempotent.
+ *
+ * Sale: awaiting_payment → paid → released (picked up, or the 72-hour window passed) and then
+ * transferred to the seller; or paid → problem_reported → refunded. A failed charge goes to
+ * payment_failed (24 hours to fix it), then cancelled, and the runner-up gets an `offered` order.
+ * Free claim: claimed.
  */
 export const orderKind = pgEnum("order_kind", ["sale", "free_claim"]);
-export const orderStatus = pgEnum("order_status", ["awaiting_payment", "claimed"]);
+export const orderStatus = pgEnum("order_status", [
+  "awaiting_payment",
+  "claimed",
+  "offered",
+  "payment_failed",
+  "paid",
+  "problem_reported",
+  "released",
+  "refunded",
+  "cancelled",
+]);
 
 export const orders = pgTable(
   "orders",
@@ -223,7 +264,6 @@ export const orders = pgTable(
     id: uuid().primaryKey().defaultRandom(),
     auctionId: uuid()
       .notNull()
-      .unique("orders_one_per_auction")
       .references(() => auctions.id),
     listingId: uuid()
       .notNull()
@@ -236,6 +276,46 @@ export const orders = pgTable(
     priceCents: integer().notNull(),
     premiumCents: integer().notNull(),
     totalCents: integer().notNull(),
+    /** What the seller receives (the price, less any seller fee: none in V1). */
+    sellerPayoutCents: integer().notNull().default(0),
+    /** The runner-up's offer after the winner's payment failed. */
+    secondChance: boolean().notNull().default(false),
+
+    // Payment. Each attempt (a new card after a failure) gets its own Stripe idempotency key.
+    paymentAttempt: integer().notNull().default(1),
+    /** "pi_…" for the current attempt; "fake_pi_…" with FAKE_CARDS=1. */
+    paymentIntentId: text().unique(),
+    /** "ch_…": the charge a transfer to the seller is funded from. */
+    chargeId: text(),
+    cardBrand: text(),
+    cardLast4: text(),
+    /** Stripe's decline code ("card_declined", "insufficient_funds"), never card data. */
+    paymentFailure: text(),
+    /** A failed charge must be fixed by this time (set at the first failure, never extended). */
+    paymentDueAt: timestamp({ withTimezone: true }),
+    paidAt: timestamp({ withTimezone: true }),
+    /** A second-chance offer lapses at this time. */
+    offerExpiresAt: timestamp({ withTimezone: true }),
+
+    // Payment protection: held until pickup is confirmed or this time passes with no problem.
+    releaseAfter: timestamp({ withTimezone: true }),
+    pickedUpAt: timestamp({ withTimezone: true }),
+    releasedAt: timestamp({ withTimezone: true }),
+    problemReportedAt: timestamp({ withTimezone: true }),
+    problemNote: text(),
+    refundRequestedAt: timestamp({ withTimezone: true }),
+    refundId: text(),
+    refundedAt: timestamp({ withTimezone: true }),
+    /** Set exactly when status becomes cancelled (the one-live-order index keys on it). */
+    cancelledAt: timestamp({ withTimezone: true }),
+    /** payment_failed | offer_declined | offer_expired | no_runner_up */
+    cancelReason: text(),
+
+    // Paying the seller.
+    transferId: text().unique(),
+    transferredAt: timestamp({ withTimezone: true }),
+    payoutId: uuid().references(() => payouts.id, { onDelete: "set null" }),
+
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp({ withTimezone: true })
       .notNull()
@@ -243,11 +323,19 @@ export const orders = pgTable(
       .$onUpdate(() => new Date()),
   },
   (t) => [
+    // One live order per auction; a cancelled one (cancelled_at set) doesn't count.
+    uniqueIndex("orders_one_live_per_auction")
+      .on(t.auctionId)
+      .where(sql`${t.cancelledAt} is null`),
     index("orders_buyer_idx").on(t.buyerId),
     index("orders_seller_idx").on(t.sellerId),
+    index("orders_payout_idx").on(t.payoutId),
     check("orders_total", sql`${t.totalCents} = ${t.priceCents} + ${t.premiumCents}`),
+    check("orders_card_last4", sql`${t.cardLast4} is null or ${t.cardLast4} ~ '^[0-9]{4}$'`),
   ],
 ).enableRLS();
 
 export type OrderRow = typeof orders.$inferSelect;
+export type OrderStatus = (typeof orderStatus.enumValues)[number];
+export type PayoutRow = typeof payouts.$inferSelect;
 export type ClosingNightRow = typeof closingNights.$inferSelect;

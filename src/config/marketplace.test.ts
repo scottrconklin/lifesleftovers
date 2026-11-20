@@ -25,11 +25,12 @@ describe("marketplaceConfig", () => {
     expect(c.fees.buyerPremiumBps).toBe(1000);
     expect(c.fees.buyerPremiumMinCents).toBe(100);
     expect(c.fees.sellerFeeBps).toBe(0);
-    expect(c.payouts).toEqual({
+    expect(c.payouts).toMatchObject({
       intervalDays: 14,
       minimumBalanceCents: 1500,
       autoReleaseHours: 72,
     });
+    expect(c.payments.failedChargeGraceHours).toBe(24);
     expect(c.softClose).toEqual({ windowSeconds: 120, extendToSeconds: 120 });
     expect(c.radius).toEqual({
       defaultMiles: 15,
