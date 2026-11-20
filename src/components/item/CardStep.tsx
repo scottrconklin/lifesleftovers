@@ -102,7 +102,9 @@ function StripeCardForm({
 
   return (
     <div className="flex flex-col gap-3">
-      <PaymentElement />
+      {/* Cards only (Apple Pay and Google Pay give cards too). Link is off because it offers to
+          pay by bank, which can't be charged instantly when an auction closes. */}
+      <PaymentElement options={{ wallets: { link: "never" } }} />
       {error ? <FormMessage tone="error">{error}</FormMessage> : null}
       <Button type="button" size="lg" onClick={save} disabled={busy || !stripeJs} aria-busy={busy}>
         {busy ? "Saving…" : "Save card"}
